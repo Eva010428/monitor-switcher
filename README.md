@@ -28,7 +28,8 @@ Cross-platform tool for switching dual monitor inputs via DDC/CI. Controls monit
 
 ```cmd
 cd windows
-cl /EHsc /MT /O2 /std:c++17 monitor_switcher.cpp /link Dxva2.lib Gdi32.lib User32.lib /OUT:..\bin\monitor_switcher.exe
+mingw32-make
+copy monitor_switcher.exe ..\bin\
 ```
 
 See [windows/BUILD.md](windows/BUILD.md) for detailed build instructions.

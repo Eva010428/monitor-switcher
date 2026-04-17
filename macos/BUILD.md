@@ -1,8 +1,8 @@
-# macOS 設定說明
+# macOS Setup Instructions
 
-## 安裝 DDC 工具
+## Install DDC Tools
 
-### Apple Silicon（M1/M2/M3/M4）
+### Apple Silicon (M1/M2/M3/M4)
 
 ```bash
 brew install m1ddc
@@ -14,11 +14,11 @@ brew install m1ddc
 brew install ddcctl
 ```
 
-> **⚠️ Apple Silicon HDMI 限制**：Apple Silicon Mac 的內建 HDMI 孔硬體上不支援 DDC/CI。螢幕必須透過 **Thunderbolt/USB-C** 連接才能使用自動切換。透過 HDMI 連接的螢幕需手動按 OSD 按鈕切換。
+> **⚠️ Apple Silicon HDMI Limitation**: Apple Silicon Macs have HDMI ports that do not support DDC/CI at the hardware level. Monitors must be connected via **Thunderbolt/USB-C** for auto-switching to work. Monitors connected via HDMI require manual OSD button switching.
 
 ---
 
-## 讓腳本可執行
+## Make Scripts Executable
 
 ```bash
 chmod +x macos/monitor_switcher.sh switch.sh
@@ -26,59 +26,59 @@ chmod +x macos/monitor_switcher.sh switch.sh
 
 ---
 
-## 確認安裝
+## Verify Installation
 
 ```bash
 ./switch.sh detect
 ```
 
-應顯示每個 display 的 DDC/CI 支援狀態。
+Should display DDC/CI support status for each display.
 
 ---
 
-## 可選依賴
+## Optional Dependencies
 
-### jq（JSON 解析，非必要）
+### jq (JSON parsing, optional)
 
 ```bash
 brew install jq
 ```
 
-若未安裝 jq，`load_config()` 會改用 `grep`/`sed` 解析設定檔，功能相同。
+If jq is not installed, `load_config()` will fall back to `grep`/`sed` for parsing config files with identical functionality.
 
 ---
 
-## 快速啟動方式
+## Quick Launch Options
 
 ### Automator App
 
-1. 開啟 Automator → 新增「應用程式」
-2. 加入「執行 Shell 指令碼」
-3. 填入：`/path/to/monitor-switcher/switch.sh mac`
-4. 儲存為 "Switch to Mac.app" 並拖曳到 Dock
+1. Open Automator → New "Application"
+2. Add "Run Shell Script"
+3. Enter: `/path/to/monitor-switcher/switch.sh mac`
+4. Save as "Switch to Mac.app" and drag to Dock
 
-### 快速鍵（BetterTouchTool / Karabiner-Elements）
+### Hotkeys (BetterTouchTool / Karabiner-Elements)
 
-綁定快速鍵執行 shell script：`/path/to/switch.sh mac`
+Bind hotkey to execute shell script: `/path/to/switch.sh mac`
 
 ---
 
-## 疑難排解
+## Troubleshooting
 
-**「ddcctl: command not found」**
+**"ddcctl: command not found"**
 ```bash
 brew reinstall ddcctl
 ```
 
 **DDC communication failure**
-- 最常見原因：螢幕透過 HDMI 連接 Apple Silicon Mac
-- 執行 `m1ddc display list detailed` 確認連接方式
-- 改用 USB-C/Thunderbolt 連接
+- Most common cause: monitor connected via HDMI to Apple Silicon Mac
+- Run `m1ddc display list detailed` to verify connection type
+- Switch to USB-C/Thunderbolt connection
 
-**螢幕沒有反應**
-- 在螢幕 OSD 選單確認 DDC/CI 已啟用
-- 確認使用的線材支援 DDC/CI（劣質線材可能不支援）
-- 重新執行 `./switch.sh setup` 自動偵測正確輸入碼
+**Monitor not responding**
+- Verify DDC/CI is enabled in monitor OSD menu
+- Ensure cable supports DDC/CI (cheap cables may not)
+- Re-run `./switch.sh setup` to auto-detect correct input codes
 
-**Terminal 權限問題**
-- 系統偏好設定 → 隱私權 → 輔助使用 → 允許 Terminal
+**Terminal permission issues**
+- System Preferences → Privacy → Accessibility → Allow Terminal
