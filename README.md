@@ -1,28 +1,28 @@
 # Monitor Switcher
 
-一鍵切換雙螢幕輸入源的跨平台工具。透過 DDC/CI 協定控制螢幕在 DisplayPort 與 HDMI 之間切換，適用於雙系統（Windows + Mac）共用螢幕的場景。
+Cross-platform tool for switching dual monitor inputs via DDC/CI. Controls monitor input switching between DisplayPort and HDMI, designed for dual-boot (Windows + macOS) or KVM setups where monitors are shared across systems.
 
 ---
 
-## 功能特色
+## Features
 
-- **雙平台支援**：Windows（C++）與 macOS（Shell + m1ddc/ddcctl）
-- **一鍵切換**：同時切換多個螢幕的輸入源
-- **自動設定精靈**：自動偵測可用輸入碼、閃爍亮度確認螢幕身份、互動寫入設定檔
-- **JSON 設定檔**：設定完成後可直接編輯微調
-- **無需安裝**：編譯後僅需執行檔，不污染系統環境
+- **Cross-platform**: Windows (C++) and macOS (Shell + m1ddc/ddcctl)
+- **One-click switching**: Switch all monitors simultaneously
+- **Auto-setup wizard**: Auto-detect input codes, blink brightness to identify monitors, interactive configuration generation
+- **JSON configuration**: Easily editable config file after setup
+- **Portable**: No installation required, single executable approach
 
-## 使用情境
+## Use Cases
 
-- 雙系統共用螢幕：Windows 與 Mac 共用顯示器，切換時自動切換輸入源
-- KVM 補充：KVM 切換鍵鼠，本工具切換螢幕輸入源
-- 工作站切換：在工作電腦與個人電腦之間快速切換
+- **Dual-boot systems**: Windows and Mac sharing the same displays, auto-switch inputs when booting
+- **KVM companion**: KVM switches keyboard/mouse, this tool switches monitor inputs
+- **Workstation switching**: Quick transition between work and personal computers
 
 ---
 
-## 快速開始
+## Quick Start
 
-### Step 1：編譯（Windows）/ 安裝依賴（macOS）
+### Step 1: Build (Windows) / Install Dependencies (macOS)
 
 #### Windows
 
@@ -31,7 +31,7 @@ cd windows
 cl /EHsc /MT /O2 /std:c++17 monitor_switcher.cpp /link Dxva2.lib Gdi32.lib User32.lib /OUT:..\bin\monitor_switcher.exe
 ```
 
-詳細編譯說明見 [windows/BUILD.md](windows/BUILD.md)。
+See [windows/BUILD.md](windows/BUILD.md) for detailed build instructions.
 
 #### macOS
 
@@ -45,9 +45,9 @@ brew install ddcctl
 chmod +x macos/monitor_switcher.sh switch.sh
 ```
 
-詳細說明見 [macos/BUILD.md](macos/BUILD.md)。
+See [macos/BUILD.md](macos/BUILD.md) for details.
 
-### Step 2：執行設定精靈
+### Step 2: Run Setup Wizard
 
 ```cmd
 REM Windows
@@ -57,14 +57,14 @@ switch.bat setup
 ./switch.sh setup
 ```
 
-精靈會自動：
-1. 閃爍每個螢幕的亮度，讓你確認哪個是哪個
-2. 查詢 DDC/CI 能力字串（Windows）或探測標準輸入碼（macOS），找出可用輸入源
-3. 互動命名每個輸入（例如 `dp1`、`hdmi2`）
-4. 詢問哪個輸入對應 Windows，哪個對應 Mac
-5. 寫入 `config/monitors.json`
+The wizard will automatically:
+1. Blink each monitor's brightness to help you identify which is which
+2. Query DDC/CI capability string (Windows) or probe standard input codes (macOS) to discover available inputs
+3. Interactively name each input (e.g., `dp1`, `hdmi2`)
+4. Ask which input corresponds to Windows and which to Mac
+5. Write configuration to `config/monitors.json`
 
-### Step 3：使用
+### Step 3: Usage
 
 ```cmd
 REM Windows
@@ -78,9 +78,9 @@ switch.bat mac
 
 ---
 
-## 低階命令
+## Low-Level Commands
 
-直接操作 DDC/CI，用於排查問題或手動調整：
+Direct DDC/CI operations for troubleshooting or manual adjustments:
 
 ```cmd
 REM Windows
@@ -91,7 +91,7 @@ bin\monitor_switcher.exe capabilities 0
 ```
 
 ```bash
-# macOS（根據工具）
+# macOS (depending on tool)
 m1ddc display 1 get input
 m1ddc display 1 set input 15
 ddcctl -d 1
@@ -100,10 +100,10 @@ ddcctl -d 1 -i 15
 
 ---
 
-## VCP 0x60 輸入碼參考
+## VCP 0x60 Input Code Reference
 
-| 輸入源 | 代碼 |
-|--------|------|
+| Input Source | Code |
+|--------------|------|
 | DVI 1 | 3 |
 | DVI 2 | 4 |
 | DisplayPort 1 | 15 |
@@ -113,34 +113,34 @@ ddcctl -d 1 -i 15
 | HDMI 3 | 19 |
 | USB-C / DP | 27 |
 
-實際值依螢幕廠商而異，請以 `setup` 精靈偵測到的值為準。
+Actual values vary by monitor manufacturer. Use values detected by the `setup` wizard.
 
 ---
 
-## 進階使用
+## Advanced Usage
 
-### 建立桌面捷徑（Windows）
+### Create Desktop Shortcuts (Windows)
 
-1. 右鍵桌面 → 新增 → 捷徑
-2. 位置：`C:\path\to\monitor-switcher\switch.bat mac`
-3. 可設定快速鍵（捷徑內容 → 快速鍵欄位）
+1. Right-click Desktop → New → Shortcut
+2. Location: `C:\path\to\monitor-switcher\switch.bat mac`
+3. Can set hotkey (Shortcut properties → Shortcut key field)
 
-### 建立 Automator App（macOS）
+### Create Automator App (macOS)
 
-1. 開啟 Automator → 新增應用程式
-2. 加入「執行 Shell 指令碼」
-3. 填入：`/path/to/switch.sh mac`
-4. 儲存為 "Switch to Mac.app" 並拖曳到 Dock
+1. Open Automator → New Application
+2. Add "Run Shell Script"
+3. Enter: `/path/to/switch.sh mac`
+4. Save as "Switch to Mac.app" and drag to Dock
 
-### 開機自動執行（Windows）
+### Auto-run on Startup (Windows)
 
 ```cmd
 schtasks /create /tn "SwitchToWindows" /tr "C:\path\to\switch.bat windows" /sc onlogon
 ```
 
-### 開機自動執行（macOS LaunchAgent）
+### Auto-run on Startup (macOS LaunchAgent)
 
-建立 `~/Library/LaunchAgents/com.user.monitorswitcher.plist`：
+Create `~/Library/LaunchAgents/com.user.monitorswitcher.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -160,61 +160,61 @@ schtasks /create /tn "SwitchToWindows" /tr "C:\path\to\switch.bat windows" /sc o
 
 ---
 
-## 疑難排解
+## Troubleshooting
 
 ### Windows
 
-**「Failed to get the vcp code value」**
-- 在螢幕 OSD 選單中啟用 DDC/CI
-- 以系統管理員身分執行
-- 更新顯示卡驅動程式
+**"Failed to get the vcp code value"**
+- Enable DDC/CI in monitor OSD menu
+- Run as Administrator
+- Update graphics driver
 
-**偵測不到螢幕**
-- 確認螢幕已開啟並連接
-- 重新插拔線材
-- 更新顯示卡驅動程式
+**Monitor not detected**
+- Ensure monitor is powered on and connected
+- Reseat cables
+- Update graphics driver
 
-**編譯錯誤**
-- 確認已安裝 Windows SDK（含 `PhysicalMonitorEnumerationAPI.h`）
-- 確認連結了 `Dxva2.lib`
-- 詳見 [windows/BUILD.md](windows/BUILD.md)
+**Compilation errors**
+- Ensure Windows SDK is installed (includes `PhysicalMonitorEnumerationAPI.h`)
+- Verify `Dxva2.lib` is linked
+- See [windows/BUILD.md](windows/BUILD.md)
 
 ### macOS
 
-**⚠️ Apple Silicon HDMI 限制**
+**⚠️ Apple Silicon HDMI Limitation**
 
-Apple Silicon Mac（M1/M2/M3/M4）的**內建 HDMI 孔硬體上不支援 DDC/CI**。必須透過 **Thunderbolt/USB-C** 連接螢幕才能使用自動切換。
+Apple Silicon Macs (M1/M2/M3/M4) **HDMI ports do not support DDC/CI at the hardware level**. Must connect monitors via **Thunderbolt/USB-C** for auto-switching to work.
 
-若螢幕只能透過 HDMI 連接：只在 Windows 端使用自動切換，macOS 端手動按螢幕 OSD 按鈕切換。
+If your monitor only has HDMI: use auto-switching on Windows side only, manually press monitor OSD buttons when on macOS.
 
-**「ddcctl: command not found」**
+**"ddcctl: command not found"**
 ```bash
 brew install ddcctl    # Intel Mac
 brew install m1ddc     # Apple Silicon
 ```
 
 **DDC communication failure**
-- 最常見原因：螢幕透過 HDMI 連接 Apple Silicon Mac
-- 解決方案：改用 USB-C/Thunderbolt 連接
+- Most common cause: monitor connected via HDMI to Apple Silicon Mac
+- Solution: switch to USB-C/Thunderbolt connection
 
-### 通用
+### General
 
-**某個螢幕可切換，另一個不行**
-- 兩個螢幕可能使用不同的 VCP 值
-- 重新執行 `setup` 精靈
+**One monitor switches, the other doesn't**
+- The two monitors may use different VCP values
+- Re-run the `setup` wizard
 
-**切換後螢幕黑屏數秒**
-- 正常現象，螢幕需要時間切換輸入源
+**Monitor goes black for a few seconds after switching**
+- Normal behavior, monitors need time to switch inputs
 
 ---
 
-## 致謝
+## Acknowledgments
 
-- **Windows 實作**：基於 [DDC/CI Windows API](https://blog.csdn.net/sinat_26143945/article/details/135137436) 範例
-- **macOS 實作**：使用 [ddcctl](https://github.com/kfix/ddcctl)
-- **JSON 函式庫**：[nlohmann/json](https://github.com/nlohmann/json)
+- **Windows implementation**: Based on [DDC/CI Windows API](https://blog.csdn.net/sinat_26143945/article/details/135137436) example
+- **macOS implementation**: Uses [ddcctl](https://github.com/kfix/ddcctl)
+- **JSON library**: [nlohmann/json](https://github.com/nlohmann/json)
 
-## 授權
+## License
 
-- 本專案整合程式碼：MIT License
-- macOS ddcctl 工具：GPL v3 License
+- This project integration code: MIT License
+- macOS ddcctl tool: GPL v3 License
