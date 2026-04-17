@@ -1,0 +1,27 @@
+# Compiled binaries
+bin/
+*.exe
+*.o
+*.obj
+
+# macOS specific
+.DS_Store
+*.app/
+
+# Build artifacts
+windows/*.exe
+macos/*.app
+
+# Personal configuration (users should copy from .example files)
+config/monitors.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs and temporary files
+*.log
+*.tmp

@@ -1,0 +1,25 @@
+{
+  "monitors": [
+    {
+      "id": 0,
+      "name": "Monitor 1",
+      "description": "Left Monitor - Change this to your actual monitor name"
+    },
+    {
+      "id": 1,
+      "name": "Monitor 2",
+      "description": "Right Monitor - Change this to your actual monitor name"
+    }
+  ],
+  "vcp_code": "0x60",
+  "inputs": {
+    "dp1": 15,
+    "hdmi2": 18,
+    "comment": "Run 'monitor_switcher detect' then 'monitor_switcher getvcp 0 60' to find your actual values"
+  },
+  "profiles": {
+    "windows": "dp1",
+    "mac": "hdmi2",
+    "comment": "Define which input to use for each profile"
+  }
+}
