@@ -1,8 +1,12 @@
 # Windows Build Instructions
 
-## Requirements
+---
 
-### Option A: MinGW-w64 (Recommended)
+## Part 1 — monitor_switcher.exe (C++ DDC/CI binary)
+
+### Requirements
+
+#### Option A: MinGW-w64 (Recommended)
 
 Install via Chocolatey:
 
@@ -12,16 +16,16 @@ choco install mingw
 
 Or download from https://www.mingw-w64.org/downloads/
 
-### Option B: Visual Studio
+#### Option B: Visual Studio
 
 - Visual Studio 2019 or 2022 (Community edition is free)
 - During installation, select "**Desktop development with C++**" workload (includes Windows SDK)
 
 ---
 
-## Build
+### Build
 
-### MinGW (Recommended)
+#### MinGW (Recommended)
 
 Using Makefile:
 
@@ -39,7 +43,7 @@ g++ -std=c++17 -O2 -static -o monitor_switcher.exe monitor_switcher.cpp -ldxva2 
 copy monitor_switcher.exe ..\bin\
 ```
 
-### Visual Studio (Command Line)
+#### Visual Studio (Command Line)
 
 Open **Developer Command Prompt for VS**:
 
@@ -52,7 +56,7 @@ cl /EHsc /MT /O2 /std:c++17 monitor_switcher.cpp /link Dxva2.lib Gdi32.lib User3
 
 ---
 
-## Verify Build
+### Verify Build
 
 ```cmd
 bin\monitor_switcher.exe help
@@ -61,7 +65,7 @@ bin\monitor_switcher.exe detect
 
 ---
 
-## Troubleshooting
+### Troubleshooting
 
 **Cannot find `PhysicalMonitorEnumerationAPI.h`**
 - MinGW: Header should be included by default. If missing, install full mingw-w64 package
@@ -88,3 +92,51 @@ bin\monitor_switcher.exe detect
 - Enable DDC/CI in monitor OSD menu
 - Run as Administrator
 - Update graphics driver
+
+---
+
+## Part 2 — monitor_hub.exe (Python Flask hub, optional)
+
+`monitor_hub` is the optional network hub service. Build it into a standalone `.exe` with PyInstaller so Python is not required on the target machine.
+
+### Requirements
+
+- Python 3.11+
+- pip
+
+```cmd
+pip install flask pyinstaller
+```
+
+### Build
+
+From the project root:
+
+```cmd
+pyinstaller monitor_hub.spec
+```
+
+Output: `dist\monitor_hub.exe`
+
+The binary is self-contained — it bundles Flask, Jinja2, the web UI templates, and static files.
+
+### Run
+
+```cmd
+REM Copy config and edit mode/ports
+copy monitor_hub\config.example.json monitor_hub\config.json
+notepad monitor_hub\config.json
+
+REM Start hub (reads config.json from same directory as exe when bundled)
+dist\monitor_hub.exe
+```
+
+Or copy `monitor_hub.exe` next to `config.json` anywhere and run it directly.
+
+### Verify
+
+```cmd
+curl http://localhost:5000/
+```
+
+Should return the web UI HTML.

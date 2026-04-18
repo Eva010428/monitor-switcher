@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitor Hub</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Monitor Hub</h1>
+    <div class="header-actions">
+      <button id="btn-add" class="btn btn-primary">+ Add Source</button>
+      <button id="btn-settings" class="btn btn-secondary">⚙ Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="sources-grid"></div>
+    <p id="empty-msg" class="empty-msg" hidden>
+      No input sources configured yet. Click <strong>+ Add Source</strong> to get started.
+    </p>
+    <div class="api-hint">
+      Switch API: <code>GET /api/switch?current=&lt;ip_or_name&gt;</code>
+    </div>
+  </main>
+
+  <!-- Add / Edit Source Modal -->
+  <div id="modal-source" class="modal" hidden>
+    <div class="modal-box">
+      <h2 id="modal-source-title">Add Source</h2>
+      <label>Name<input id="src-name" type="text" maxlength="64" placeholder="My Windows PC"></label>
+      <label>IP Address<input id="src-ip" type="text" placeholder="192.168.1.10"></label>
+      <label>Agent Port<input id="src-agent-port" type="number" value="5001" min="1" max="65535"></label>
+      <label>VCP Code <span class="hint">(optional — leave blank to identify later)</span>
+        <input id="src-vcp" type="number" placeholder="e.g. 15" min="0" max="255">
+      </label>
+      <div class="modal-footer">
+        <button id="src-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="src-save" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Identify Modal -->
+  <div id="modal-identify" class="modal" hidden>
+    <div class="modal-box modal-box-wide">
+      <h2>Identify: <span id="id-source-name"></span></h2>
+      <p class="identify-instruction">
+        Click a VCP code under a monitor — only <em>that</em> monitor will briefly go dark, then restore.
+        Probe each monitor until you find the right input, then click <strong>Confirm</strong>.
+      </p>
+      <div id="id-monitors"></div>
+      <div id="id-error" class="error-msg" hidden></div>
+      <div class="identify-footer">
+        <button id="id-confirm" class="btn btn-success" disabled>Confirm</button>
+        <button id="id-cancel" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="modal-settings" class="modal" hidden>
+    <div class="modal-box">
+      <h2>Settings</h2>
+      <label class="row-label">
+        Ask when multiple sources available
+        <input id="set-ask" type="checkbox">
+      </label>
+      <label>Default target (when not asking)
+        <select id="set-default-target">
+          <option value="">— none —</option>
+        </select>
+      </label>
+      <label>Identify candidates (comma-separated VCP codes)
+        <input id="set-candidates" type="text" placeholder="15,16,17,18,19,3,4,27">
+      </label>
+      <label>Identify dwell time (ms)
+        <input id="set-dwell" type="number" min="500" max="10000" step="100">
+      </label>
+      <div class="modal-footer">
+        <button id="set-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="set-save" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div id="overlay" class="overlay" hidden></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "_comment": "Copy this file to config.json and set the mode. Remove this _comment line.",
+
+  "_mode_server": "Headless server / Docker. Manages all source data and serves the web UI.",
+  "mode_server_example": {
+    "mode": "server",
+    "host": "0.0.0.0",
+    "port": 5000,
+    "ask_on_multiple": true,
+    "default_target_id": null,
+    "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+    "identify_dwell_ms": 2000
+  },
+
+  "_mode_agent": "Windows/Mac machine WITH monitors, server runs on a different machine.",
+  "mode_agent_example": {
+    "mode": "agent",
+    "host": "0.0.0.0",
+    "port": 5001,
+    "server_url": "http://192.168.1.50:5000",
+    "name": "My Windows PC",
+    "exe_path": "../bin/monitor_switcher.exe"
+  },
+
+  "_mode_both": "Windows/Mac machine WITH monitors AND acting as the server simultaneously.",
+  "mode_both_example": {
+    "mode": "both",
+    "server": {
+      "host": "0.0.0.0",
+      "port": 5000,
+      "ask_on_multiple": true,
+      "default_target_id": null,
+      "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+      "identify_dwell_ms": 2000
+    },
+    "agent": {
+      "port": 5001,
+      "name": "My Windows PC",
+      "exe_path": "../bin/monitor_switcher.exe"
+    }
+  }
+}

@@ -25,3 +25,20 @@ config/monitors.json
 # Logs and temporary files
 *.log
 *.tmp
+
+# Monitor Hub runtime data (copy from config.example.json)
+monitor_hub/config.json
+monitor_hub/sources.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# PyInstaller build artifacts
+build/
+dist/
+release/
+
+**/config.json
+**/monitors.json
+
