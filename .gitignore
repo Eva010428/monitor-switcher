@@ -1,45 +1,58 @@
 # Compiled binaries
-bin/
 *.exe
-*.o
-*.obj
-
-# macOS specific
-.DS_Store
-*.app/
+*.out
+*.app
+bin/
+!bin/.gitkeep
 
 # Build artifacts
+*.o
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
 windows/*.exe
-macos/*.app
+macos/ddcctl
 
-# Personal configuration (users should copy from .example files)
-config/monitors.json
-
-# IDE and editor files
+# IDEs and editors
 .vscode/
 .idea/
-.claude/
 *.swp
 *.swo
 *~
+.DS_Store
 
-# Logs and temporary files
+# Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+x64/
+x86/
+Debug/
+Release/
+
+# Config (keep example)
+config/monitors.json
+!config/monitors.json.example
+
+# Logs
 *.log
-*.tmp
+logs/
 
-# Monitor Hub runtime data (copy from config.example.json)
-monitor_hub/config.json
-monitor_hub/sources.json
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
 
-# Python cache
-__pycache__/
-*.pyc
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# PyInstaller build artifacts
-build/
-dist/
-release/
-
-**/config.json
-**/monitors.json
-
+# Backup files
+*.bak
+*.backup
+*~

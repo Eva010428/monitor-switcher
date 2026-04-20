@@ -18,10 +18,11 @@ cd windows
 cl /EHsc /MT /O2 /std:c++17 monitor_switcher.cpp /link Dxva2.lib Gdi32.lib User32.lib /OUT:../bin/monitor_switcher.exe
 
 # MinGW
-cd windows && mingw32-make
+cd windows
+mingw32-make
 ```
 
-Output lands in `bin/monitor_switcher.exe`.
+Output: `bin/monitor_switcher.exe`
 
 ### macOS
 
@@ -120,3 +121,18 @@ monitor_hub/sources.json        ← registered machines (auto-created at runtime
 **Identify feature** (monitor_hub): server sends setvcp_all commands to a remote agent, cycling through candidate VCP codes (default: 15,16,17,18,19,3,4,27) at a configurable dwell interval. User clicks "This is it!" in the web UI to confirm and persist the vcp_code.
 
 **Apple Silicon limitation**: HDMI ports on M1/M2/M3/M4 Macs do not support DDC/CI. Must connect monitors via Thunderbolt/USB-C.
+
+## Git Commit Convention
+
+All commits must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```
+<type>[optional scope]: <description>
+```
+
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`
+
+Examples:
+- `feat(windows): add skip option in setup wizard`
+- `fix(macos): restore input after probe timeout`
+- `chore: update .gitignore`

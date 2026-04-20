@@ -32,16 +32,46 @@ Using Makefile:
 ```cmd
 cd windows
 mingw32-make
-copy monitor_switcher.exe ..\bin\
 ```
 
 Or manually:
 
 ```cmd
 cd windows
-g++ -std=c++17 -O2 -static -o monitor_switcher.exe monitor_switcher.cpp -ldxva2 -lgdi32
-copy monitor_switcher.exe ..\bin\
+g++ -std=c++17 -O2 -static -o ..\bin\monitor_switcher.exe monitor_switcher.cpp -ldxva2 -lgdi32 -luser32
 ```
+
+Output: `bin\monitor_switcher.exe`
+
+#### Cross-compile on macOS/Linux
+
+If you want to build `monitor_switcher.exe` for Windows from macOS or Linux:
+
+**macOS**:
+```bash
+# Install mingw-w64
+brew install mingw-w64
+
+# Build
+cd windows
+./build-cross-compile.sh
+```
+
+**Linux (Ubuntu/Debian)**:
+```bash
+# Install mingw-w64
+sudo apt-get install mingw-w64
+
+# Build manually
+cd windows
+mkdir -p ../bin
+x86_64-w64-mingw32-g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ \
+    -o ../bin/monitor_switcher.exe monitor_switcher.cpp -ldxva2 -lgdi32 -luser32
+```
+
+> **Note**: The generated `.exe` file can only run on Windows. Transfer it to your Windows machine for testing.
+
+Output: `bin/monitor_switcher.exe`
 
 #### Visual Studio (Command Line)
 
