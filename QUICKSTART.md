@@ -84,8 +84,17 @@ Edit `config.json`. For a single machine acting as both server and agent:
 ```json
 {
   "mode": "both",
-  "server": { "host": "0.0.0.0", "port": 5000 },
-  "agent":  { "port": 5001, "name": "My Windows PC" }
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+    "identify_dwell_ms": 3000
+  },
+  "agent": {
+    "host": "0.0.0.0",
+    "port": 5001,
+    "name": "My Windows PC"
+  }
 }
 ```
 
@@ -108,8 +117,10 @@ monitor_hub.exe          # Windows
 Go to `http://localhost:5000` and:
 
 1. Click **+ Add Source** for each machine
-2. Click **Identify** next to a source — monitors will cycle through candidate VCP codes until you click "This is it!"
-3. Repeat for each machine
+2. Click **Identify** next to a source
+3. For each monitor, click a candidate VCP code to test it; the monitor will briefly switch and then restore
+4. Click **Save VCP** only when the test stayed on the expected source, then click **Confirm**
+5. Repeat for each machine
 
 ### Step 4: Connect Launchers to the Hub
 

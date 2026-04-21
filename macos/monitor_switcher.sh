@@ -170,11 +170,17 @@ function detect_monitors() {
 
 function _ddc_set_input() {
     local d=$1 input_value=$2
+    local result status=0
     if [ "$DDC_TOOL" = "m1ddc" ]; then
-        m1ddc display "$d" set input "$input_value" 2>&1 || true
+        result=$(m1ddc display "$d" set input "$input_value" 2>&1) || status=$?
     else
-        ddcctl -d "$d" -i "$input_value" 2>&1 || true
+        result=$(ddcctl -d "$d" -i "$input_value" 2>&1) || status=$?
     fi
+    echo "$result"
+    if [ "$status" -ne 0 ] || echo "$result" | grep -qi "failure\|failed\|error\|not found\|no display"; then
+        echo "ERROR: DDC set failed for Display $d input $input_value"
+    fi
+    return 0
 }
 
 function _ddc_probe() {
@@ -472,6 +478,48 @@ function get_current_input() {
         code=$(ddcctl -d "$d" 2>/dev/null | grep -i "input source" | grep -oE '[0-9]+' | head -1 || true)
     fi
     echo "${code:-0}"
+}
+
+function get_vcp() {
+    local d=$1
+    local vcp_code=${2:-60}
+
+    if [ "$vcp_code" != "60" ]; then
+        echo -e "${RED}Error: macOS wrapper only supports VCP 60/input source${NC}" >&2
+        exit 1
+    fi
+
+    local code
+    code=$(get_current_input "$d")
+    if [ -z "$code" ] || [ "$code" = "0" ]; then
+        echo -e "${RED}Error: Could not read current input for Display $d${NC}" >&2
+        exit 1
+    fi
+
+    echo "VCP 0x60: $code ($code decimal)"
+}
+
+function set_vcp() {
+    local d=$1
+    local vcp_code=${2:-60}
+    local value=$3
+
+    if [ "$vcp_code" != "60" ]; then
+        echo -e "${RED}Error: macOS wrapper only supports VCP 60/input source${NC}" >&2
+        exit 1
+    fi
+    if [ -z "$value" ]; then
+        echo -e "${RED}Error: Missing VCP value${NC}" >&2
+        exit 1
+    fi
+
+    local result
+    result=$(_ddc_set_input "$d" "$value")
+    echo "$result" >&2
+    if echo "$result" | grep -qi "failure\|failed\|error\|not found\|no display"; then
+        exit 1
+    fi
+    echo "OK: Display $d VCP 0x60 set to $value"
 }
 
 function probe_input_codes() {
@@ -1127,6 +1175,20 @@ case "$1" in
         ;;
     detect)
         detect_monitors
+        ;;
+    getvcp)
+        if [ $# -lt 3 ]; then
+            echo -e "${RED}Usage: $0 getvcp <display_id> <vcp_code>${NC}" >&2
+            exit 1
+        fi
+        get_vcp "$2" "$3"
+        ;;
+    setvcp)
+        if [ $# -lt 4 ]; then
+            echo -e "${RED}Usage: $0 setvcp <display_id> <vcp_code> <value>${NC}" >&2
+            exit 1
+        fi
+        set_vcp "$2" "$3" "$4"
         ;;
     switch)
         shift

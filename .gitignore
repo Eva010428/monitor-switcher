@@ -37,6 +37,16 @@ Release/
 # Config (keep example)
 config/monitors.json
 !config/monitors.json.example
+monitor_hub/config.json
+monitor_hub/sources.json
+!monitor_hub/config.example.json
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Agent-local context
+AGENTS.md
 
 # Logs
 *.log

@@ -13,6 +13,7 @@ from .identify import bp as identify_bp
 from .identify import init as init_identify
 from .settings import bp as settings_bp
 from .settings import init as init_settings
+from .execute_switch import bp as execute_switch_bp
 
 
 def _resource_base() -> Path:
@@ -38,6 +39,7 @@ def create_app(config: dict, sources_path: Path, config_path: Path) -> Flask:
     app.register_blueprint(switch_bp)
     app.register_blueprint(identify_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(execute_switch_bp)
 
     @app.get("/")
     def index():

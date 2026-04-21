@@ -25,6 +25,10 @@ def _validate_ip(ip: str):
     return True
 
 
+def _same_name(a: str, b: str) -> bool:
+    return a.strip().casefold() == b.strip().casefold()
+
+
 @bp.get("/api/sources")
 def list_sources():
     data = load_sources()
@@ -50,6 +54,8 @@ def add_source():
 
     data = load_sources()
     for s in data["sources"]:
+        if _same_name(s["name"], name):
+            return jsonify({"error": f"duplicate name: {name}", "existing_id": s["id"]}), 409
         if s["ip"] == ip:
             return jsonify({"error": f"duplicate ip: {ip}", "existing_id": s["id"]}), 409
 
@@ -83,6 +89,9 @@ def update_source(source_id: str):
             return jsonify({"error": "name cannot be empty"}), 400
         if len(name) > 64:
             return jsonify({"error": "name too long"}), 400
+        for s in data["sources"]:
+            if _same_name(s["name"], name) and s["id"] != source_id:
+                return jsonify({"error": f"duplicate name: {name}"}), 409
         source["name"] = name
 
     if "ip" in body:

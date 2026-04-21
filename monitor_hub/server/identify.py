@@ -33,6 +33,20 @@ def _agent_post(url: str, body: dict | None = None, timeout: int = 8) -> dict:
         return json.loads(resp.read())
 
 
+def _restore_agent_vcp(base_url: str, monitor_id: int, prior: int, attempts: int = 5) -> None:
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            _agent_post(f"{base_url}/ddc/setvcp",
+                        {"monitor_id": monitor_id, "vcp_code": prior})
+            return
+        except Exception as e:
+            last_error = e
+            if attempt < attempts - 1:
+                time.sleep(0.4)
+    raise RuntimeError(f"restore to VCP {prior} failed after {attempts} attempts: {last_error}")
+
+
 @bp.post("/api/identify/<source_id>/start")
 def start_identify(source_id: str):
     data = load_sources()
@@ -85,6 +99,9 @@ def start_identify(source_id: str):
         "session_id": session_id,
         "candidates": candidates,
         "monitors": monitors,
+        "prior_vcps": prior_vcps,
+        "saved_vcp_codes": source.get("vcp_codes") or {},
+        "saved_vcp_code": source.get("vcp_code"),
         "state": "idle",
     })
 
@@ -110,20 +127,30 @@ def probe_identify(session_id: str):
     if not session["probe_lock"].acquire(blocking=False):
         return jsonify({"error": "probe already in progress"}), 409
 
-    base_url = _agent_url(session["source"])
-    prior = session["prior_vcps"].get(int(monitor_id))
-
     try:
+        base_url = _agent_url(session["source"])
+        prior = session["prior_vcps"].get(int(monitor_id))
+        if prior is None:
+            return jsonify({
+                "error": "current VCP is unreadable; cannot safely auto-restore after probing",
+            }), 409
+
+        dwell_ms = int(_config.get("identify_dwell_ms", 3000))
+        dwell_s = max(0.5, min(dwell_ms / 1000.0, 10.0))
+
         session["state"] = "probing"
         _agent_post(f"{base_url}/ddc/setvcp",
                     {"monitor_id": int(monitor_id), "vcp_code": int(vcp_code)})
-        time.sleep(1.0)
-        if prior is not None:
-            _agent_post(f"{base_url}/ddc/setvcp",
-                        {"monitor_id": int(monitor_id), "vcp_code": prior})
-        session["probed"][int(monitor_id)] = int(vcp_code)
+        time.sleep(dwell_s)
+        _restore_agent_vcp(base_url, int(monitor_id), prior)
         session["state"] = "idle"
-        return jsonify({"ok": True, "monitor_id": int(monitor_id), "vcp_code": int(vcp_code)})
+        return jsonify({
+            "ok": True,
+            "monitor_id": int(monitor_id),
+            "vcp_code": int(vcp_code),
+            "restored_vcp_code": prior,
+            "dwell_ms": dwell_ms,
+        })
     except Exception as e:
         session["state"] = "error"
         session["error"] = str(e)

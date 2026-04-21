@@ -75,7 +75,7 @@ switch.bat / switch.sh          ← thin launchers, forward args to core
     │       GET /api/switch?current=<my_ip>  →  monitor_hub server
     │       Returns { action: "switch", target: { vcp_code } }
     │          or  { action: "choose", options: [...] }
-    │       Falls back to local config on network error
+    │       Falls back to local config on network error (5s timeout)
     │
     └── [local fallback]
             windows/monitor_switcher.cpp  ← C++, Windows Monitor APIs + DDC/CI
@@ -86,6 +86,7 @@ monitor_hub/                    ← Python Flask network hub (optional)
     ├── server/
     │   ├── app.py              ← Flask app factory; background agent health-ping loop
     │   ├── sources.py          ← /api/sources CRUD (sources.json persistence)
+    │   ├── execute_switch.py   ← web UI source-card switch endpoint
     │   ├── switch.py           ← GET /api/switch?current=<ip|name>
     │   ├── identify.py         ← /api/identify/* — cycles VCP codes on remote agent
     │   └── settings.py         ← GET|PUT /api/settings
@@ -107,18 +108,47 @@ monitor_hub/sources.json        ← registered machines (auto-created at runtime
 **Configuration** (`config/monitors.json`):
 - `vcp_code`: DDC/CI feature code for input source (always `0x60`)
 - `inputs`: mapping of human names (`dp1`, `hdmi2`) to integer VCP values
-- `profiles`: mapping of profile names (`windows`, `mac`) to input names
+- `profiles`: per-monitor input mapping — `{ "windows": { "0": "dp1", "1": "hdmi2" } }`
+
+**Config file resolution by mode**:
+- Standalone: `config/monitors.json` relative to the launcher (`switch.bat` / `switch.sh`)
+- monitor_hub agent: `bin/monitor_switcher.exe` is resolved relative to project root; when bundled via PyInstaller `sys._MEIPASS` is used as root
+- `monitor_hub/sources.json` is auto-created at first agent registration
 
 **monitor_hub modes**:
 - `server` (port 5000): web UI + REST API, manages sources.json, no DDC access
 - `agent` (port 5001): wraps monitor_switcher binary, exposes /ddc/* HTTP endpoints
-- `both`: server + agent on same machine (server in daemon thread, agent in main thread)
+- `both`: server starts in daemon thread (port 5000) first with 1.5 s head-start, agent runs in main thread (port 5001); if DDC unavailable silently downgrades to server-only
 
-**Retry logic**: 3 attempts with 500 ms delay, present in both C++ and shell implementations.
+**Per-monitor VCP codes** (sources data model):
+- Legacy: `"vcp_code": 15` — single code applied to all monitors
+- New: `"vcp_codes": {"0": 15, "1": 17}` — per-monitor mapping (index → VCP value)
+- `/api/switch` response always includes both fields for backward compatibility
 
-**Setup wizard** (`setup` / `autodetect` command): blinks brightness (VCP 0x10) to identify monitors, parses capabilities string (Windows) or probes standard code list (macOS) to discover valid VCP 0x60 values, interactively names inputs and assigns profiles, writes `config/monitors.json`. Both `loadConfig()` (Windows) and `load_config()` (macOS) now read from the file; fallback to hardcoded defaults only if file is absent.
+**Server-aware switch API response format**:
+```json
+{ "action": "switch", "target": { "id": "…", "name": "…", "vcp_code": 15, "vcp_codes": {"0": 15} } }
+{ "action": "choose", "options": [ {…}, {…} ] }
+```
+`switch.bat` / `switch.sh` parse this with inline Python (no `jq` dependency); fall back to local config on any network error.
 
-**Identify feature** (monitor_hub): server sends setvcp_all commands to a remote agent, cycling through candidate VCP codes (default: 15,16,17,18,19,3,4,27) at a configurable dwell interval. User clicks "This is it!" in the web UI to confirm and persist the vcp_code.
+**Identify feature** (monitor_hub): interactive VCP discovery workflow:
+1. Server starts session (`POST /api/identify/<agent_id>/start`), saves current VCP values
+2. Client probes candidate codes one by one (`POST /api/identify/<session_id>/probe`) — each probe sets the code for `identify_dwell_ms` then restores the original
+3. User saves only successful probes in the web UI, then confirms (`POST /api/identify/<session_id>/confirm`) → persists to `sources.json`
+4. Session state machine: `idle → probing → idle` (also `error` / `confirmed` / `cancelled`); `probe_lock` prevents concurrent probes
+
+**Web UI quick switch**: `POST /api/sources/<source_id>/switch` asks the source agent to switch its local monitors to the target source's saved VCP codes. Per-monitor codes are applied by detected monitor order so Windows `0,1` and macOS `1,2,...` IDs do not have to match.
+
+**Agent registration**: on startup agent POSTs to `/api/sources`; detects own IP via socket connection to server URL (`_local_ip()`). Duplicate IPs and duplicate names are handled gracefully; names are unique so `both` mode does not add a duplicate localhost source when a named source already exists.
+
+**Health pings**: server background thread pings all agents every 30 s (3 s timeout); status is in-memory only, not persisted to `sources.json`.
+
+**Retry logic**: identify restore retries 5 times with 400 ms delay. Agent registration retries 5 times with 3 s delays. DDC subprocess timeout is 10 s.
+
+**Setup wizard** (`setup` / `autodetect` command): blinks brightness (VCP 0x10) to identify monitors, parses capabilities string (Windows) or probes standard code list (macOS) to discover valid VCP 0x60 values, interactively names inputs and assigns profiles, writes `config/monitors.json`. Both `loadConfig()` (Windows) and `load_config()` (macOS) read from the file; fallback to hardcoded defaults only if file is absent.
+
+**macOS DDC tool chain**: tries `m1ddc` (Apple Silicon, `brew install m1ddc`) → falls back to `ddcctl` (Intel, `brew install ddcctl`) → exits with error. JSON parsing tries `jq` if available, else grep/sed fallback.
 
 **Apple Silicon limitation**: HDMI ports on M1/M2/M3/M4 Macs do not support DDC/CI. Must connect monitors via Thunderbolt/USB-C.
 
@@ -128,9 +158,15 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 
 ```
 <type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
 ```
 
 Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`
+
+Use `!` after the type/scope or a `BREAKING CHANGE:` footer for breaking changes.
 
 Examples:
 - `feat(windows): add skip option in setup wizard`

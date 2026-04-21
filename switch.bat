@@ -43,7 +43,7 @@ if defined MONITOR_SERVER_URL (
             "('%API_RESPONSE%' | ConvertFrom-Json).target.name"') do set TARGET_NAME=%%N
         echo Switching to: %TARGET_NAME%
         powershell -NoProfile -Command ^
-            "$t = ('%API_RESPONSE%' | ConvertFrom-Json).target; if ($t.vcp_codes) { $t.vcp_codes.PSObject.Properties | ForEach-Object { & '.\bin\monitor_switcher.exe' setvcp $_.Name 60 $_.Value } } else { $vcp = $t.vcp_code; & '.\bin\monitor_switcher.exe' detect 2>$null | Select-String 'Display\s+(\d+)' | ForEach-Object { & '.\bin\monitor_switcher.exe' setvcp $_.Matches[0].Groups[1].Value 60 $vcp } }"
+            "$t = ('%API_RESPONSE%' | ConvertFrom-Json).target; $ids = @(& '.\bin\monitor_switcher.exe' detect 2>$null | Select-String 'Display\s+(\d+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }); if ($t.vcp_codes) { $codes = @($t.vcp_codes.PSObject.Properties | Sort-Object {[int]$_.Name} | ForEach-Object { $_.Value }); for ($i=0; $i -lt [Math]::Min($ids.Count, $codes.Count); $i++) { & '.\bin\monitor_switcher.exe' setvcp $ids[$i] 60 $codes[$i] } } else { $vcp = $t.vcp_code; $ids | ForEach-Object { & '.\bin\monitor_switcher.exe' setvcp $_ 60 $vcp } }"
         exit /b 0
     )
 
@@ -56,7 +56,7 @@ if defined MONITOR_SERVER_URL (
             "$opts = ('%API_RESPONSE%' | ConvertFrom-Json).options; $opts[%CHOICE%-1].name"') do set TARGET_NAME=%%N
         echo Switching to: %TARGET_NAME%
         powershell -NoProfile -Command ^
-            "$t = ('%API_RESPONSE%' | ConvertFrom-Json).options[%CHOICE%-1]; if ($t.vcp_codes) { $t.vcp_codes.PSObject.Properties | ForEach-Object { & '.\bin\monitor_switcher.exe' setvcp $_.Name 60 $_.Value } } else { $vcp = $t.vcp_code; & '.\bin\monitor_switcher.exe' detect 2>$null | Select-String 'Display\s+(\d+)' | ForEach-Object { & '.\bin\monitor_switcher.exe' setvcp $_.Matches[0].Groups[1].Value 60 $vcp } }"
+            "$t = ('%API_RESPONSE%' | ConvertFrom-Json).options[%CHOICE%-1]; $ids = @(& '.\bin\monitor_switcher.exe' detect 2>$null | Select-String 'Display\s+(\d+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }); if ($t.vcp_codes) { $codes = @($t.vcp_codes.PSObject.Properties | Sort-Object {[int]$_.Name} | ForEach-Object { $_.Value }); for ($i=0; $i -lt [Math]::Min($ids.Count, $codes.Count); $i++) { & '.\bin\monitor_switcher.exe' setvcp $ids[$i] 60 $codes[$i] } } else { $vcp = $t.vcp_code; $ids | ForEach-Object { & '.\bin\monitor_switcher.exe' setvcp $_ 60 $vcp } }"
         exit /b 0
     )
 

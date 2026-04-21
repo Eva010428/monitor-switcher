@@ -32,9 +32,6 @@
       <label>Name<input id="src-name" type="text" maxlength="64" placeholder="My Windows PC"></label>
       <label>IP Address<input id="src-ip" type="text" placeholder="192.168.1.10"></label>
       <label>Agent Port<input id="src-agent-port" type="number" value="5001" min="1" max="65535"></label>
-      <label>VCP Code <span class="hint">(optional — leave blank to identify later)</span>
-        <input id="src-vcp" type="number" placeholder="e.g. 15" min="0" max="255">
-      </label>
       <div class="modal-footer">
         <button id="src-cancel" class="btn btn-secondary">Cancel</button>
         <button id="src-save" class="btn btn-primary">Save</button>
@@ -51,7 +48,7 @@
         Probe each monitor until you find the right input, then click <strong>Confirm</strong>.
       </p>
       <div id="id-monitors"></div>
-      <div id="id-error" class="error-msg" hidden></div>
+      <div id="id-probe-decision" class="probe-decision" hidden></div>
       <div class="identify-footer">
         <button id="id-confirm" class="btn btn-success" disabled>Confirm</button>
         <button id="id-cancel" class="btn btn-secondary">Cancel</button>
@@ -63,15 +60,6 @@
   <div id="modal-settings" class="modal" hidden>
     <div class="modal-box">
       <h2>Settings</h2>
-      <label class="row-label">
-        Ask when multiple sources available
-        <input id="set-ask" type="checkbox">
-      </label>
-      <label>Default target (when not asking)
-        <select id="set-default-target">
-          <option value="">— none —</option>
-        </select>
-      </label>
       <label>Identify candidates (comma-separated VCP codes)
         <input id="set-candidates" type="text" placeholder="15,16,17,18,19,3,4,27">
       </label>
@@ -87,6 +75,8 @@
 
   <!-- Overlay -->
   <div id="overlay" class="overlay" hidden></div>
+  <div id="confirm-panel" class="confirm-panel" hidden></div>
+  <div id="toast-stack" class="toast-stack"></div>
 
   <script src="/static/app.js"></script>
 </body>

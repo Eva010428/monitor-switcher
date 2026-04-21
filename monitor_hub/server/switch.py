@@ -21,6 +21,10 @@ def _find_source(current: str, sources: list[dict]) -> dict | None:
     return None
 
 
+def _has_vcp(source: dict) -> bool:
+    return source.get("vcp_code") is not None or bool(source.get("vcp_codes"))
+
+
 @bp.get("/api/switch")
 def switch():
     current = (request.args.get("current") or "").strip()
@@ -43,7 +47,7 @@ def switch():
 
     if len(others) == 1:
         target = others[0]
-        if target.get("vcp_code") is None:
+        if not _has_vcp(target):
             return jsonify({
                 "error": "target vcp_code not configured",
                 "hint": "use the Identify feature on the server UI",
@@ -53,7 +57,7 @@ def switch():
 
     # Multiple targets
     if _config.get("ask_on_multiple", True):
-        valid = [s for s in others if s.get("vcp_code") is not None]
+        valid = [s for s in others if _has_vcp(s)]
         if not valid:
             return jsonify({"error": "no targets have vcp_code configured"}), 409
         return jsonify({"action": "choose", "options": [_source_summary(s) for s in valid]})
@@ -61,10 +65,10 @@ def switch():
         default_id = _config.get("default_target_id")
         target = next((s for s in others if s["id"] == default_id), None)
         if not target:
-            target = next((s for s in others if s.get("vcp_code") is not None), None)
+            target = next((s for s in others if _has_vcp(s)), None)
         if not target:
             return jsonify({"error": "no valid target found"}), 409
-        if target.get("vcp_code") is None:
+        if not _has_vcp(target):
             return jsonify({"error": "default target has no vcp_code configured"}), 409
         return jsonify({"action": "switch", "target": _source_summary(target)})
 

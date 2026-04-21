@@ -37,14 +37,20 @@ if [ -n "$MONITOR_SERVER_URL" ]; then
             TARGET_NAME=$(python3 -c "import sys,json; print(json.loads(sys.argv[1])['target']['name'])" "$RESPONSE")
             echo "Switching to: $TARGET_NAME"
             python3 - "$RESPONSE" "$SCRIPT_DIR" <<'PYEOF'
-import sys, json, subprocess
+import re, sys, json, subprocess
 target = json.loads(sys.argv[1])['target']
 switcher = f"{sys.argv[2]}/macos/monitor_switcher.sh"
+def monitor_ids():
+    out = subprocess.check_output([switcher, 'detect'], text=True, stderr=subprocess.DEVNULL)
+    return [m.group(1) for m in re.finditer(r'Display\s+(\d+):', out)]
 if target.get('vcp_codes'):
-    for mon_id, vcp in target['vcp_codes'].items():
+    ids = monitor_ids()
+    codes = [v for _, v in sorted(target['vcp_codes'].items(), key=lambda item: int(item[0]))]
+    for mon_id, vcp in zip(ids, codes):
         subprocess.run([switcher, 'setvcp', mon_id, '60', str(vcp)])
 else:
-    subprocess.run([switcher, 'setvcp_all', '60', str(target['vcp_code'])])
+    for mon_id in monitor_ids():
+        subprocess.run([switcher, 'setvcp', mon_id, '60', str(target['vcp_code'])])
 PYEOF
             exit 0
         fi
@@ -65,15 +71,21 @@ PYEOF
             TARGET_NAME=$(python3 -c "import sys,json; opts=json.loads(sys.argv[1])['options']; print(opts[int(sys.argv[2])-1]['name'])" "$RESPONSE" "$CHOICE")
             echo "Switching to: $TARGET_NAME"
             python3 - "$RESPONSE" "$CHOICE" "$SCRIPT_DIR" <<'PYEOF'
-import sys, json, subprocess
+import re, sys, json, subprocess
 opts = json.loads(sys.argv[1])['options']
 target = opts[int(sys.argv[2]) - 1]
 switcher = f"{sys.argv[3]}/macos/monitor_switcher.sh"
+def monitor_ids():
+    out = subprocess.check_output([switcher, 'detect'], text=True, stderr=subprocess.DEVNULL)
+    return [m.group(1) for m in re.finditer(r'Display\s+(\d+):', out)]
 if target.get('vcp_codes'):
-    for mon_id, vcp in target['vcp_codes'].items():
+    ids = monitor_ids()
+    codes = [v for _, v in sorted(target['vcp_codes'].items(), key=lambda item: int(item[0]))]
+    for mon_id, vcp in zip(ids, codes):
         subprocess.run([switcher, 'setvcp', mon_id, '60', str(vcp)])
 else:
-    subprocess.run([switcher, 'setvcp_all', '60', str(target['vcp_code'])])
+    for mon_id in monitor_ids():
+        subprocess.run([switcher, 'setvcp', mon_id, '60', str(target['vcp_code'])])
 PYEOF
             exit 0
         fi

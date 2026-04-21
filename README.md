@@ -91,7 +91,7 @@ switch.bat mac
 switch.bat / switch.sh
   │
   ├── [MONITOR_SERVER_URL set]  →  GET /api/switch?current=<my_ip>
-  │     monitor_hub server returns { action: "switch", target: { vcp_code } }
+  │     monitor_hub server returns { action: "switch", target: { vcp_code/vcp_codes } }
   │     or { action: "choose", options: [...] } when multiple targets available
   │     Falls back to local config/monitors.json if server is unreachable
   │
@@ -140,8 +140,17 @@ Best for a setup where one Windows PC has the monitors and also acts as the hub.
 ```json
 {
   "mode": "both",
-  "server": { "host": "0.0.0.0", "port": 5000 },
-  "agent":  { "port": 5001, "name": "My Windows PC" }
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+    "identify_dwell_ms": 3000
+  },
+  "agent": {
+    "host": "0.0.0.0",
+    "port": 5001,
+    "name": "My Windows PC"
+  }
 }
 ```
 
@@ -153,7 +162,9 @@ A dedicated server (or NAS/Pi) with no monitors, only managing state.
 {
   "mode": "server",
   "host": "0.0.0.0",
-  "port": 5000
+  "port": 5000,
+  "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+  "identify_dwell_ms": 3000
 }
 ```
 
@@ -162,13 +173,14 @@ A dedicated server (or NAS/Pi) with no monitors, only managing state.
 ```json
 {
   "mode": "agent",
+  "host": "0.0.0.0",
   "port": 5001,
   "server_url": "http://192.168.1.50:5000",
   "name": "My Mac"
 }
 ```
 
-### Connecting switch.bat / switch.sh to the hub
+### Using switch.bat / switch.sh with the hub
 
 Set the `MONITOR_SERVER_URL` environment variable before running the launcher:
 
@@ -190,7 +202,7 @@ export MONITOR_SERVER_URL=http://192.168.1.50:5000
 When the variable is set, the launcher:
 1. Detects its own LAN IP
 2. Calls `GET /api/switch?current=<my_ip>`
-3. Applies the returned VCP code to all local monitors
+3. Applies the returned VCP code(s) to local monitors
 4. Falls back silently to local `config/monitors.json` if server is unreachable
 
 ### Web UI
@@ -198,8 +210,11 @@ When the variable is set, the launcher:
 Open `http://<server-ip>:5000` in a browser:
 
 - **Add Source**: register a machine by name and IP
-- **Identify**: cycle through candidate VCP codes on the remote agent until you confirm which input is correct — no manual VCP lookup needed
-- **Settings**: configure `ask_on_multiple`, `default_target_id`, `identify_candidates`, `identify_dwell_ms`
+- **Identify**: click a candidate VCP code to test one monitor, wait for auto-restore, then Save or Discard the result before Confirm
+- **Quick switch buttons**: source cards can switch an online agent directly to another saved source
+- **Settings**: configure `identify_candidates` and `identify_dwell_ms`
+
+Source names are unique. If an agent in `both` mode starts and a source with the same name already exists, registration is skipped instead of creating a duplicate `127.0.0.1` entry.
 
 ### Build Standalone Executable (PyInstaller)
 
@@ -353,8 +368,8 @@ brew install m1ddc     # Apple Silicon
 
 **Identify wizard doesn't change monitor input**
 - Agent must be running on the machine with the monitors
-- Confirm agent `exe_path` points to a valid `monitor_switcher.exe`
 - macOS: confirm `macos/monitor_switcher.sh` is executable
+- macOS: if a monitor switches away and cannot auto-restore, reduce `identify_dwell_ms`; some displays drop DDC/CI access after switching inputs
 
 ### General
 
