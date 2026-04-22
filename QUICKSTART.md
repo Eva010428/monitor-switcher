@@ -1,6 +1,8 @@
-﻿# Quick Start Guide
+# Quick Start Guide
 
-## 5-Minute Setup
+---
+
+## Mode A — Standalone (no server needed)
 
 ### Step 1: Build / Install Tools
 
@@ -49,7 +51,7 @@ The wizard will guide you through:
 2. **Detect input codes**: Auto-query monitor's DDC/CI input codes
 3. **Name inputs**: Give each code a short name (e.g., dp1, hdmi2)
 4. **Assign profiles**: Tell the wizard which input is Windows and which is Mac
-5. **Write config**: Auto-generate config/monitors.json
+5. **Write config**: Auto-generate `config/monitors.json`
 
 ---
 
@@ -57,8 +59,8 @@ The wizard will guide you through:
 
 ```cmd
 REM Windows
-switch.bat mac       <- Switch to Mac
-switch.bat windows   <- Switch to Windows
+switch.bat mac       <- Switch monitors to Mac input
+switch.bat windows   <- Switch monitors to Windows input
 
 # macOS
 ./switch.sh mac
@@ -67,22 +69,95 @@ switch.bat windows   <- Switch to Windows
 
 ---
 
-## Common Issues
+## Mode B — Network Hub (monitor_hub)
 
-**"Failed to get the vcp code value"**
--> Enable DDC/CI in monitor OSD menu
+Use this when you want a central server to manage VCP codes across multiple machines.
 
-**macOS: Nothing happens during wizard blinking**
--> Monitor may be connected via HDMI to Apple Silicon Mac (hardware doesn't support DDC/CI)
--> Must use USB-C/Thunderbolt connection
+### Step 1: Configure
 
-**Only one monitor responds**
--> Other monitor may not support DDC/CI or uses different input codes
--> Re-run setup wizard
+```bash
+cp monitor_hub/config.example.json monitor_hub/config.json
+```
 
-**"ddcctl: command not found"**
--> brew install ddcctl (Intel) or brew install m1ddc (Apple Silicon)
+Edit `config.json`. For a single machine acting as both server and agent:
+
+```json
+{
+  "mode": "both",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+    "identify_dwell_ms": 3000
+  },
+  "agent": {
+    "host": "0.0.0.0",
+    "port": 5001,
+    "name": "My Windows PC"
+  }
+}
+```
+
+### Step 2: Start Monitor Hub
+
+```bash
+pip install flask
+python -m monitor_hub
+```
+
+Or run the pre-built executable:
+
+```cmd
+monitor_hub.exe          # Windows
+./monitor_hub            # macOS
+```
+
+### Step 3: Open Web UI
+
+Go to `http://localhost:5000` and:
+
+1. Click **+ Add Source** for each machine
+2. Click **Identify** next to a source
+3. For each monitor, click a candidate VCP code to test it; the monitor will briefly switch and then restore
+4. Click **Save VCP** only when the test stayed on the expected source, then click **Confirm**
+5. Repeat for each machine
+
+### Step 4: Connect Launchers to the Hub
+
+**Windows** — set environment variable:
+```cmd
+setx MONITOR_SERVER_URL http://192.168.1.50:5000
+```
+
+**macOS** — add to `~/.zshrc`:
+```bash
+export MONITOR_SERVER_URL=http://192.168.1.50:5000
+```
+
+Now `switch.bat` / `switch.sh` will automatically query the hub. If the server is unreachable, they fall back to local `config/monitors.json`.
 
 ---
 
-For more details, see [README.md](README.md).
+## Common Issues
+
+**"Failed to get the vcp code value"**
+→ Enable DDC/CI in monitor OSD menu
+
+**macOS: Nothing happens during wizard blinking**
+→ Monitor may be connected via HDMI to Apple Silicon Mac (hardware doesn't support DDC/CI)
+→ Must use USB-C/Thunderbolt connection
+
+**Only one monitor responds**
+→ Other monitor may not support DDC/CI or uses different input codes
+→ Re-run setup wizard
+
+**"ddcctl: command not found"**
+→ `brew install ddcctl` (Intel) or `brew install m1ddc` (Apple Silicon)
+
+**Monitor Hub: switch.bat ignores server**
+→ Check that `MONITOR_SERVER_URL` is set (`echo %MONITOR_SERVER_URL%` on Windows)
+→ The launcher silently falls back to local config if the server returns an error
+
+---
+
+For full documentation, see [README.md](README.md).

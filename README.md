@@ -11,16 +11,18 @@ Cross-platform tool for switching dual monitor inputs via DDC/CI. Controls monit
 - **Auto-setup wizard**: Auto-detect input codes, blink brightness to identify monitors, interactive configuration generation
 - **JSON configuration**: Easily editable config file after setup
 - **Portable**: No installation required, single executable approach
+- **Network Hub** *(optional)*: `monitor_hub` — Python Flask service that coordinates switching across machines on the same LAN via a web UI and REST API
 
 ## Use Cases
 
 - **Dual-boot systems**: Windows and Mac sharing the same displays, auto-switch inputs when booting
 - **KVM companion**: KVM switches keyboard/mouse, this tool switches monitor inputs
 - **Workstation switching**: Quick transition between work and personal computers
+- **Multi-machine hub**: One central server manages VCP codes; all machines query it before switching
 
 ---
 
-## Quick Start
+## Quick Start (Standalone Mode)
 
 ### Step 1: Build (Windows) / Install Dependencies (macOS)
 
@@ -79,6 +81,151 @@ switch.bat mac
 
 ---
 
+## Monitor Hub (Network Mode)
+
+`monitor_hub` is an optional Python service that turns one machine into a central switching server. Other machines (agents) query it before switching, so VCP codes are managed in one place.
+
+### Architecture
+
+```
+switch.bat / switch.sh
+  │
+  ├── [MONITOR_SERVER_URL set]  →  GET /api/switch?current=<my_ip>
+  │     monitor_hub server returns { action: "switch", target: { vcp_code/vcp_codes } }
+  │     or { action: "choose", options: [...] } when multiple targets available
+  │     Falls back to local config/monitors.json if server is unreachable
+  │
+  └── [no server URL]  →  local config/monitors.json  →  DDC/CI
+
+monitor_hub (Flask, port 5000 server / 5001 agent)
+  ├── server mode   — web UI + /api/switch, /api/sources, /api/identify, /api/settings
+  ├── agent mode    — wraps monitor_switcher.exe/.sh; exposes /ddc/* HTTP endpoints
+  └── both mode     — server + agent on the same machine
+
+config/monitors.json        ← VCP values and profiles (standalone mode)
+monitor_hub/config.json     ← monitor_hub mode and settings
+monitor_hub/sources.json    ← registered machines (auto-created by server)
+```
+
+### Setup
+
+**1. Copy and edit config:**
+
+```bash
+cp monitor_hub/config.example.json monitor_hub/config.json
+# Edit config.json — choose mode: "server", "agent", or "both"
+```
+
+**2. Install Python dependencies:**
+
+```bash
+pip install flask
+```
+
+**3. Run:**
+
+```bash
+python -m monitor_hub
+# or via PyInstaller bundle:
+./monitor_hub        # macOS/Linux
+monitor_hub.exe      # Windows
+```
+
+### Modes
+
+#### `"both"` — Single machine (server + agent)
+
+Best for a setup where one Windows PC has the monitors and also acts as the hub.
+
+```json
+{
+  "mode": "both",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+    "identify_dwell_ms": 3000
+  },
+  "agent": {
+    "host": "0.0.0.0",
+    "port": 5001,
+    "name": "My Windows PC"
+  }
+}
+```
+
+#### `"server"` — Headless/Docker hub
+
+A dedicated server (or NAS/Pi) with no monitors, only managing state.
+
+```json
+{
+  "mode": "server",
+  "host": "0.0.0.0",
+  "port": 5000,
+  "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+  "identify_dwell_ms": 3000
+}
+```
+
+#### `"agent"` — Machine with monitors, remote server
+
+```json
+{
+  "mode": "agent",
+  "host": "0.0.0.0",
+  "port": 5001,
+  "server_url": "http://192.168.1.50:5000",
+  "name": "My Mac"
+}
+```
+
+### Using switch.bat / switch.sh with the hub
+
+Set the `MONITOR_SERVER_URL` environment variable before running the launcher:
+
+```cmd
+REM Windows — set permanently
+setx MONITOR_SERVER_URL http://192.168.1.50:5000
+
+REM or per-session
+set MONITOR_SERVER_URL=http://192.168.1.50:5000
+switch.bat
+```
+
+```bash
+# macOS — add to ~/.zshrc or ~/.bash_profile
+export MONITOR_SERVER_URL=http://192.168.1.50:5000
+./switch.sh
+```
+
+When the variable is set, the launcher:
+1. Detects its own LAN IP
+2. Calls `GET /api/switch?current=<my_ip>`
+3. Applies the returned VCP code(s) to local monitors
+4. Falls back silently to local `config/monitors.json` if server is unreachable
+
+### Web UI
+
+Open `http://<server-ip>:5000` in a browser:
+
+- **Add Source**: register a machine by name and IP
+- **Identify**: click a candidate VCP code to test one monitor, wait for auto-restore, then Save or Discard the result before Confirm
+- **Quick switch buttons**: source cards can switch an online agent directly to another saved source
+- **Settings**: configure `identify_candidates` and `identify_dwell_ms`
+
+Source names are unique. If an agent in `both` mode starts and a source with the same name already exists, registration is skipped instead of creating a duplicate `127.0.0.1` entry.
+
+### Build Standalone Executable (PyInstaller)
+
+```bash
+pip install pyinstaller flask
+pyinstaller monitor_hub.spec
+# output: dist/monitor_hub.exe (Windows) or dist/monitor_hub (macOS)
+```
+
+---
+
 ## Low-Level Commands
 
 Direct DDC/CI operations for troubleshooting or manual adjustments:
@@ -114,7 +261,7 @@ ddcctl -d 1 -i 15
 | HDMI 3 | 19 |
 | USB-C / DP | 27 |
 
-Actual values vary by monitor manufacturer. Use values detected by the `setup` wizard.
+Actual values vary by monitor manufacturer. Use values detected by the `setup` wizard or the Identify feature in Monitor Hub.
 
 ---
 
@@ -159,6 +306,16 @@ Create `~/Library/LaunchAgents/com.user.monitorswitcher.plist`:
 </plist>
 ```
 
+### Auto-start Monitor Hub (Windows Service / macOS LaunchAgent)
+
+**Windows** — run at login via Task Scheduler:
+
+```cmd
+schtasks /create /tn "MonitorHub" /tr "C:\path\to\monitor_hub.exe" /sc onlogon /ru SYSTEM
+```
+
+**macOS** — run at login via LaunchAgent (same pattern as above, point to `monitor_hub` binary).
+
 ---
 
 ## Troubleshooting
@@ -197,6 +354,22 @@ brew install m1ddc     # Apple Silicon
 **DDC communication failure**
 - Most common cause: monitor connected via HDMI to Apple Silicon Mac
 - Solution: switch to USB-C/Thunderbolt connection
+
+### Monitor Hub
+
+**Agent can't reach server**
+- Check `server_url` in `monitor_hub/config.json`
+- Verify firewall allows port 5000/5001
+- Check server is running: `curl http://<server-ip>:5000/`
+
+**switch.bat / switch.sh ignores server**
+- Confirm `MONITOR_SERVER_URL` env var is set in the same shell session
+- The launcher falls back silently to local config if the server returns an error
+
+**Identify wizard doesn't change monitor input**
+- Agent must be running on the machine with the monitors
+- macOS: confirm `macos/monitor_switcher.sh` is executable
+- macOS: if a monitor switches away and cannot auto-restore, reduce `identify_dwell_ms`; some displays drop DDC/CI access after switching inputs
 
 ### General
 

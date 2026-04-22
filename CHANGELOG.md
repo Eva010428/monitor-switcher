@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Monitor Hub web UI source-card quick switch endpoint for direct source-to-source switching.
+- Monitor Hub Identify flow now saves confirmed per-monitor VCP codes only after an explicit Save action.
+
+### Changed
+- Monitor Hub Settings now only exposes Identify candidates and dwell time.
+- Add/Edit Source no longer accepts manual VCP code entry; VCP codes are managed through Identify.
+- Agent/source names are unique to prevent `both` mode from creating duplicate localhost sources.
+- macOS multi-monitor switching continues through later displays when one DDC set fails.
+
 ### Planned Features
 - [ ] GUI system tray application
 - [ ] Hotkey support
