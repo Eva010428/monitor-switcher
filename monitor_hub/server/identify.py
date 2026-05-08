@@ -1,10 +1,8 @@
 import uuid
 import threading
 import time
-import urllib.request
-import urllib.error
-import json
 from flask import Blueprint, jsonify, request
+from ..agent import ddc
 from . import load_sources, save_sources
 
 bp = Blueprint("identify", __name__)
@@ -12,39 +10,13 @@ bp = Blueprint("identify", __name__)
 _sessions: dict[str, dict] = {}
 _session_lock = threading.Lock()
 _config: dict = {}
+_ddc_config: dict = {}
 
 
-def init(server_config: dict):
-    global _config
+def init(server_config: dict, ddc_config: dict = None):
+    global _config, _ddc_config
     _config = server_config
-
-
-def _agent_url(source: dict) -> str:
-    port = source.get("agent_port", 5001)
-    return f"http://{source['ip']}:{port}"
-
-
-def _agent_post(url: str, body: dict | None = None, timeout: int = 8) -> dict:
-    data = json.dumps(body or {}).encode()
-    req = urllib.request.Request(url, data=data,
-                                 headers={"Content-Type": "application/json"},
-                                 method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read())
-
-
-def _restore_agent_vcp(base_url: str, monitor_id: int, prior: int, attempts: int = 5) -> None:
-    last_error: Exception | None = None
-    for attempt in range(attempts):
-        try:
-            _agent_post(f"{base_url}/ddc/setvcp",
-                        {"monitor_id": monitor_id, "vcp_code": prior})
-            return
-        except Exception as e:
-            last_error = e
-            if attempt < attempts - 1:
-                time.sleep(0.4)
-    raise RuntimeError(f"restore to VCP {prior} failed after {attempts} attempts: {last_error}")
+    _ddc_config = ddc_config or {}
 
 
 @bp.post("/api/identify/<source_id>/start")
@@ -54,14 +26,10 @@ def start_identify(source_id: str):
     if not source:
         return jsonify({"error": "source not found"}), 404
 
-    base_url = _agent_url(source)
-
-    # Detect monitors on the agent machine
     try:
-        resp = _agent_post(f"{base_url}/ddc/detect")
-        monitors = resp.get("monitors", [])
+        monitors = ddc.detect_monitors(_ddc_config)
     except Exception as e:
-        return jsonify({"error": f"Could not connect to agent at {base_url}: {e}"}), 502
+        return jsonify({"error": f"DDC detect failed: {e}"}), 502
 
     if not monitors:
         return jsonify({"error": "No monitors detected on agent"}), 502
@@ -70,8 +38,7 @@ def start_identify(source_id: str):
     prior_vcps: dict[int, int | None] = {}
     for mon in monitors:
         try:
-            r = _agent_post(f"{base_url}/ddc/getvcp", {"monitor_id": mon["id"]})
-            prior_vcps[mon["id"]] = r.get("vcp_code")
+            prior_vcps[mon["id"]] = ddc.get_input(_ddc_config, mon["id"])
         except Exception:
             prior_vcps[mon["id"]] = None
 
@@ -128,7 +95,6 @@ def probe_identify(session_id: str):
         return jsonify({"error": "probe already in progress"}), 409
 
     try:
-        base_url = _agent_url(session["source"])
         prior = session["prior_vcps"].get(int(monitor_id))
         if prior is None:
             return jsonify({
@@ -139,10 +105,19 @@ def probe_identify(session_id: str):
         dwell_s = max(0.5, min(dwell_ms / 1000.0, 10.0))
 
         session["state"] = "probing"
-        _agent_post(f"{base_url}/ddc/setvcp",
-                    {"monitor_id": int(monitor_id), "vcp_code": int(vcp_code)})
+        ddc.set_input(_ddc_config, int(monitor_id), int(vcp_code))
         time.sleep(dwell_s)
-        _restore_agent_vcp(base_url, int(monitor_id), prior)
+        last_err = None
+        for attempt in range(5):
+            try:
+                ddc.set_input(_ddc_config, int(monitor_id), prior)
+                break
+            except Exception as e:
+                last_err = e
+                if attempt < 4:
+                    time.sleep(0.4)
+        else:
+            raise RuntimeError(f"restore to VCP {prior} failed after 5 attempts: {last_err}")
         session["state"] = "idle"
         return jsonify({
             "ok": True,
