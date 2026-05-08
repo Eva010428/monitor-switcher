@@ -1,19 +1,11 @@
 import json
 import logging
 import sys
-from pathlib import Path
 
+from .logging_setup import setup_logging
 from .runtime_paths import config_path, ensure_default_config, sources_path
 
 
-def _data_base() -> Path:
-    """Writable data dir: next to exe when bundled by PyInstaller, package dir in dev."""
-    if hasattr(sys, '_MEIPASS'):
-        return Path(sys.executable).parent
-    return Path(__file__).parent
-
-
-_BASE = _data_base()
 logger = logging.getLogger(__name__)
 
 
@@ -24,12 +16,12 @@ def _load_config() -> dict:
 
 def _run_server(cfg: dict):
     from .server.app import create_app
-    sources_path = _BASE / "sources.json"
-    config_path = _BASE / "config.json"
+    hub_sources_path = sources_path()
+    hub_config_path = config_path()
     host = cfg.get("host", "0.0.0.0")
     port = cfg.get("port", 5000)
-    print(f"[server] Starting on http://{host}:{port}")
-    app = create_app(cfg, sources_path, config_path)
+    logger.info("[server] Starting on http://%s:%s", host, port)
+    app = create_app(cfg, hub_sources_path, hub_config_path)
     app.run(host=host, port=port, threaded=True)
 
 
@@ -51,6 +43,7 @@ def _run_local(cfg: dict):
 
 
 def main():
+    setup_logging()
     full_config = _load_config()
     mode = full_config.get("mode", "local")
 
