@@ -24,6 +24,7 @@ def _relaunch_deferred() -> None:
         subprocess.Popen(
             ["pythonw", "-m", "monitor_hub"],
             cwd=root,
+            stdin=subprocess.DEVNULL,
             creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
         )
     else:
@@ -31,6 +32,7 @@ def _relaunch_deferred() -> None:
             ["python3", "-m", "monitor_hub"],
             cwd=root,
             start_new_session=True,
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )

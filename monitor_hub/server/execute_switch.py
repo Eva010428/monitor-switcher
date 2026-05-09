@@ -1,8 +1,10 @@
+import logging
 from flask import Blueprint, jsonify
 from . import load_sources
 from ..agent import ddc
 
 bp = Blueprint("execute_switch", __name__)
+logger = logging.getLogger(__name__)
 
 _ddc_config: dict = {}
 
@@ -45,6 +47,7 @@ def execute_switch(source_id):
             for mon in monitors:
                 ddc.set_input(_ddc_config, mon["id"], int(vcp_code))
     except Exception as e:
+        logger.exception("DDC switch failed for source %s", source_id)
         return jsonify({"error": str(e)}), 502
 
     return jsonify({"ok": True})
