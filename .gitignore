@@ -36,6 +36,7 @@ Release/
 
 # Config (keep example)
 config/monitors.json
+legacy/config/monitors.json
 !config/monitors.json.example
 monitor_hub/config.json
 monitor_hub/sources.json
@@ -45,8 +46,23 @@ monitor_hub/sources.json
 __pycache__/
 *.py[cod]
 
-# Agent-local context
+# AI assistant local context
 AGENTS.md
+CLAUDE.md
+GEMINI.md
+.claude/
+.codex/
+.cursor/
+.continue/
+.windsurf/
+.agents/
+.gemini/
+.aider*
+.goose/
+.roo/
+.cline/
+.augment/
+.kiro/
 
 # Logs
 *.log

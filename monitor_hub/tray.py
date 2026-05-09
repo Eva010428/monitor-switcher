@@ -18,6 +18,7 @@ def _start_server(cfg: dict) -> None:
     import logging
     from .agent import ddc
     from .logging_setup import setup_logging
+    from .net import bind_host
     from .runtime_paths import config_path, sources_path
     from .server.app import create_app
 
@@ -28,9 +29,10 @@ def _start_server(cfg: dict) -> None:
         )
 
     app = create_app(cfg, sources_path(), config_path(), ddc_config=cfg)
-    host = cfg.get("host", "127.0.0.1")
+    host = cfg.get("host", "0.0.0.0")
+    bind = bind_host(host)
     port = cfg.get("port", 5000)
-    app.run(host=host, port=port, threaded=True, use_reloader=False)
+    app.run(host=bind, port=port, threaded=True, use_reloader=False)
 
 
 def run_tray(cfg: dict) -> None:

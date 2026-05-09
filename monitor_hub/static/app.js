@@ -149,7 +149,10 @@ async function loadAll() {
     GET('/api/sources').then(d => d.sources),
     GET('/api/settings'),
   ]);
-  document.getElementById('btn-enable-tray').hidden = !!settings.tray_active;
+  const localControlsVisible = !!settings.local_request;
+  document.getElementById('btn-enable-tray').hidden =
+    !localControlsVisible || !!settings.tray_active;
+  document.getElementById('btn-quit').hidden = !localControlsVisible;
   renderSources();
 }
 

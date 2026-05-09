@@ -3,7 +3,6 @@ from pathlib import Path
 
 
 DEFAULT_CONFIG = {
-    "mode": "local",
     "host": "0.0.0.0",
     "port": 5000,
     "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],

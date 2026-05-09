@@ -79,22 +79,14 @@ Use this when you want a central server to manage VCP codes across multiple mach
 cp monitor_hub/config.example.json monitor_hub/config.json
 ```
 
-Edit `config.json`. For a single machine acting as both server and agent:
+Edit `config.json`:
 
 ```json
 {
-  "mode": "both",
-  "server": {
-    "host": "0.0.0.0",
-    "port": 5000,
-    "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
-    "identify_dwell_ms": 3000
-  },
-  "agent": {
-    "host": "0.0.0.0",
-    "port": 5001,
-    "name": "My Windows PC"
-  }
+  "host": "0.0.0.0",
+  "port": 5000,
+  "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
+  "identify_dwell_ms": 3000
 }
 ```
 

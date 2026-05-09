@@ -97,14 +97,12 @@ switch.bat / switch.sh
   │
   └── [no server URL]  →  local config/monitors.json  →  DDC/CI
 
-monitor_hub (Flask, port 5000 server / 5001 agent)
-  ├── server mode   — web UI + /api/switch, /api/sources, /api/identify, /api/settings
-  ├── agent mode    — wraps monitor_switcher.exe/.sh; exposes /ddc/* HTTP endpoints
-  └── both mode     — server + agent on the same machine
+monitor_hub (Flask, port 5000)
+  └── web UI + /api/switch, /api/sources, /api/identify, /api/settings
 
 config/monitors.json        ← VCP values and profiles (standalone mode)
-monitor_hub/config.json     ← monitor_hub mode and settings
-monitor_hub/sources.json    ← registered machines (auto-created by server)
+monitor_hub/config.json     ← monitor_hub host, port, and Identify settings
+monitor_hub/sources.json    ← source profiles
 ```
 
 ### Setup
@@ -113,7 +111,7 @@ monitor_hub/sources.json    ← registered machines (auto-created by server)
 
 ```bash
 cp monitor_hub/config.example.json monitor_hub/config.json
-# Edit config.json — choose mode: "server", "agent", or "both"
+# Edit config.json host/port if needed
 ```
 
 **2. Install Python dependencies:**
@@ -131,52 +129,14 @@ python -m monitor_hub
 monitor_hub.exe      # Windows
 ```
 
-### Modes
-
-#### `"both"` — Single machine (server + agent)
-
-Best for a setup where one Windows PC has the monitors and also acts as the hub.
+### Configuration
 
 ```json
 {
-  "mode": "both",
-  "server": {
-    "host": "0.0.0.0",
-    "port": 5000,
-    "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
-    "identify_dwell_ms": 3000
-  },
-  "agent": {
-    "host": "0.0.0.0",
-    "port": 5001,
-    "name": "My Windows PC"
-  }
-}
-```
-
-#### `"server"` — Headless/Docker hub
-
-A dedicated server (or NAS/Pi) with no monitors, only managing state.
-
-```json
-{
-  "mode": "server",
   "host": "0.0.0.0",
   "port": 5000,
   "identify_candidates": [15, 16, 17, 18, 19, 3, 4, 27],
   "identify_dwell_ms": 3000
-}
-```
-
-#### `"agent"` — Machine with monitors, remote server
-
-```json
-{
-  "mode": "agent",
-  "host": "0.0.0.0",
-  "port": 5001,
-  "server_url": "http://192.168.1.50:5000",
-  "name": "My Mac"
 }
 ```
 
@@ -357,17 +317,17 @@ brew install m1ddc     # Apple Silicon
 
 ### Monitor Hub
 
-**Agent can't reach server**
-- Check `server_url` in `monitor_hub/config.json`
-- Verify firewall allows port 5000/5001
-- Check server is running: `curl http://<server-ip>:5000/`
+**Other machines can't reach Monitor Hub**
+- Check `host` and `port` in `monitor_hub/config.json`
+- Verify firewall allows port 5000
+- Check Monitor Hub is running: `curl http://<hub-ip>:5000/`
 
 **switch.bat / switch.sh ignores server**
 - Confirm `MONITOR_SERVER_URL` env var is set in the same shell session
 - The launcher falls back silently to local config if the server returns an error
 
 **Identify wizard doesn't change monitor input**
-- Agent must be running on the machine with the monitors
+- Monitor Hub must be running on the machine with the monitors
 - macOS: confirm `macos/monitor_switcher.sh` is executable
 - macOS: if a monitor switches away and cannot auto-restore, reduce `identify_dwell_ms`; some displays drop DDC/CI access after switching inputs
 

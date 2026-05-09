@@ -5,6 +5,7 @@ import sys
 import webbrowser
 
 from .logging_setup import setup_logging
+from .net import bind_host
 from .runtime_paths import config_path, ensure_default_config, sources_path
 
 
@@ -24,18 +25,7 @@ def _is_already_running(port: int) -> bool:
         return False
 
 
-def _run_server(cfg: dict):
-    from .server.app import create_app
-    hub_sources_path = sources_path()
-    hub_config_path = config_path()
-    host = cfg.get("host", "0.0.0.0")
-    port = cfg.get("port", 5000)
-    logger.info("[server] Starting on http://%s:%s", host, port)
-    app = create_app(cfg, hub_sources_path, hub_config_path)
-    app.run(host=host, port=port, threaded=True)
-
-
-def _run_local(cfg: dict):
+def _run_hub(cfg: dict):
     from .agent import ddc
 
     if not ddc.available(cfg):
@@ -46,16 +36,17 @@ def _run_local(cfg: dict):
     hub_sources_path = sources_path()
     hub_config_path = config_path()
     host = cfg.get("host", "0.0.0.0")
+    bind = bind_host(host)
     port = cfg.get("port", 5000)
-    logger.info("[local] Starting on http://%s:%s", host, port)
+    logger.info("Starting Monitor Hub on http://%s:%s (bind %s)", host, port, bind)
     app = create_app(cfg, hub_sources_path, hub_config_path, ddc_config=cfg)
-    app.run(host=host, port=port, threaded=True)
+    app.run(host=bind, port=port, threaded=True)
 
 
 def main():
     setup_logging()
-    full_config = _load_config()
-    port = full_config.get("port", 5000)
+    cfg = _load_config()
+    port = cfg.get("port", 5000)
 
     tray_mode = "--tray" in sys.argv
 
@@ -66,20 +57,10 @@ def main():
 
     if tray_mode:
         from .tray import run_tray
-        run_tray(full_config)
+        run_tray(cfg)
         return
 
-    mode = full_config.get("mode", "local")
-    if mode == "local":
-        _run_local(full_config)
-    elif mode == "server":
-        _run_server(full_config)
-    elif mode in {"both", "agent", "tray"}:
-        logger.warning("mode %r is deprecated, running as local mode", mode)
-        _run_local(full_config.get("agent", full_config))
-    else:
-        logger.error("Unknown mode: %r", mode)
-        sys.exit(1)
+    _run_hub(cfg)
 
 
 if __name__ == "__main__":
