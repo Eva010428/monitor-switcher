@@ -254,14 +254,17 @@ async function saveSettings() {
   const candidates = candidatesRaw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
 
   try {
-    const prevMode = settings.mode || 'local';
-    settings = await PUT('/api/settings', {
+    const result = await PUT('/api/settings', {
       mode,
       identify_dwell_ms: dwell,
       identify_candidates: candidates,
     });
+    settings = result;
     closeModal('modal-settings');
-    if (mode !== prevMode) showToast('Mode changed — restart required.', 'info');
+    if (result.relaunch) {
+      showToast(`Switching to ${mode} mode — reconnecting…`, 'info');
+      setTimeout(() => location.reload(), 3000);
+    }
   } catch (e) {
     showToast(e.message, 'error');
   }

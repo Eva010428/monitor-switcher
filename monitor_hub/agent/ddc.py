@@ -44,24 +44,28 @@ else:
         return result.stdout
 
     def detect_monitors(config: dict) -> list[dict]:
+        # Output format: "[N] Model Name (UUID)"
+        out = _m1ddc("display", "list")
         monitors = []
-        for i in range(4):
-            try:
-                _m1ddc("display", str(i + 1), "get", "10")
-                monitors.append({"id": i, "description": f"Display {i + 1}"})
-            except Exception:
-                break
+        for line in out.splitlines():
+            m = re.match(r"\[(\d+)\]\s*(.+?)(?:\s*\(.*\))?$", line.strip())
+            if m:
+                idx = int(m.group(1)) - 1   # convert to 0-based
+                desc = m.group(2).strip() or f"Display {m.group(1)}"
+                monitors.append({"id": idx, "description": desc})
         return monitors
 
     def get_input(config: dict, monitor_id: int) -> int:
-        out = _m1ddc("display", str(monitor_id + 1), "get", "60")
-        m = re.search(r"(\d+)", out)
-        if not m:
-            raise RuntimeError(f"Cannot parse m1ddc output: {out!r}")
-        return int(m.group(1))
+        # m1ddc does not support reading the current input source
+        raise NotImplementedError("m1ddc cannot read current input source")
 
     def set_input(config: dict, monitor_id: int, vcp_value: int) -> None:
-        _m1ddc("display", str(monitor_id + 1), "set", "60", str(vcp_value))
+        _m1ddc("display", str(monitor_id + 1), "set", "input", str(vcp_value))
 
     def available(config: dict) -> bool:
-        return shutil.which("m1ddc") is not None
+        if not shutil.which("m1ddc"):
+            return False
+        try:
+            return bool(detect_monitors({}))
+        except Exception:
+            return False
