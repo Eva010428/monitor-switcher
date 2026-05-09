@@ -18,10 +18,10 @@
   <main>
     <div id="sources-grid"></div>
     <p id="empty-msg" class="empty-msg" hidden>
-      No input sources configured yet. Click <strong>+ Add Source</strong> to get started.
+      No input profiles configured yet. Click <strong>+ Add Source</strong> to get started.
     </p>
     <div class="api-hint">
-      Switch API: <code>GET /api/switch?current=&lt;ip_or_name&gt;</code>
+      Switch API: <code>POST /api/sources/&lt;id&gt;/switch</code>
     </div>
   </main>
 
@@ -30,8 +30,8 @@
     <div class="modal-box">
       <h2 id="modal-source-title">Add Source</h2>
       <label>Name<input id="src-name" type="text" maxlength="64" placeholder="My Windows PC"></label>
-      <label>IP Address<input id="src-ip" type="text" placeholder="192.168.1.10"></label>
-      <label>Agent Port<input id="src-agent-port" type="number" value="5001" min="1" max="65535"></label>
+      <label>VCP Codes <small>(comma-separated, one per monitor e.g. <code>15, 17</code>)</small>
+        <input id="src-vcp-manual" type="text" placeholder="15, 17"></label>
       <div class="modal-footer">
         <button id="src-cancel" class="btn btn-secondary">Cancel</button>
         <button id="src-save" class="btn btn-primary">Save</button>
