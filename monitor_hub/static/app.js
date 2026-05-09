@@ -240,6 +240,7 @@ async function deleteSource(src) {
 
 // ── Settings Modal ─────────────────────────────────────────────────────────
 function openSettingsModal() {
+  document.getElementById('set-mode').value = settings.mode || 'local';
   document.getElementById('set-dwell').value = settings.identify_dwell_ms ?? 2000;
   document.getElementById('set-candidates').value =
     (settings.identify_candidates || []).join(',');
@@ -247,16 +248,20 @@ function openSettingsModal() {
 }
 
 async function saveSettings() {
+  const mode = document.getElementById('set-mode').value;
   const dwell = parseInt(document.getElementById('set-dwell').value) || 2000;
   const candidatesRaw = document.getElementById('set-candidates').value;
   const candidates = candidatesRaw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
 
   try {
+    const prevMode = settings.mode || 'local';
     settings = await PUT('/api/settings', {
+      mode,
       identify_dwell_ms: dwell,
       identify_candidates: candidates,
     });
     closeModal('modal-settings');
+    if (mode !== prevMode) showToast('Mode changed — restart required.', 'info');
   } catch (e) {
     showToast(e.message, 'error');
   }

@@ -60,6 +60,13 @@
   <div id="modal-settings" class="modal" hidden>
     <div class="modal-box">
       <h2>Settings</h2>
+      <label>Startup mode
+        <select id="set-mode">
+          <option value="local">Local (headless server)</option>
+          <option value="tray">Tray (system-tray icon)</option>
+        </select>
+        <small>Takes effect on next restart.</small>
+      </label>
       <label>Identify candidates (comma-separated VCP codes)
         <input id="set-candidates" type="text" placeholder="15,16,17,18,19,3,4,27">
       </label>
