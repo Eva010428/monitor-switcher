@@ -36,12 +36,16 @@ def add_source():
         if _same_name(s["name"], name):
             return jsonify({"error": f"duplicate name: {name}", "existing_id": s["id"]}), 409
 
+    vcp_code = body.get("vcp_code")
+    vcp_codes = body.get("vcp_codes")
     source = {
         "id": str(uuid.uuid4()),
         "name": name,
-        "vcp_code": body.get("vcp_code"),
-        "vcp_code_confirmed": False,
+        "vcp_code": vcp_code,
+        "vcp_code_confirmed": vcp_code is not None or bool(vcp_codes),
     }
+    if vcp_codes:
+        source["vcp_codes"] = vcp_codes
     data["sources"].append(source)
     save_sources(data)
 
@@ -72,9 +76,11 @@ def update_source(source_id: str):
     if "vcp_code" in body:
         source["vcp_code"] = body["vcp_code"]
         source["vcp_code_confirmed"] = body["vcp_code"] is not None
+        source.pop("vcp_codes", None)
 
     if "vcp_codes" in body:
         source["vcp_codes"] = body["vcp_codes"]
+        source["vcp_code_confirmed"] = bool(body["vcp_codes"])
 
     if "vcp_code_confirmed" in body:
         source["vcp_code_confirmed"] = body["vcp_code_confirmed"]
