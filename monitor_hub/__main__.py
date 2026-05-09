@@ -49,6 +49,9 @@ def main():
 
     if mode == "local":
         _run_local(full_config)
+    elif mode == "tray":
+        from .tray import run_tray
+        run_tray(full_config)
     elif mode == "server":
         _run_server(full_config)
     elif mode in {"both", "agent"}:
