@@ -149,6 +149,7 @@ async function loadAll() {
     GET('/api/sources').then(d => d.sources),
     GET('/api/settings'),
   ]);
+  document.getElementById('btn-enable-tray').hidden = !!settings.tray_active;
   renderSources();
 }
 
@@ -240,7 +241,6 @@ async function deleteSource(src) {
 
 // ── Settings Modal ─────────────────────────────────────────────────────────
 function openSettingsModal() {
-  document.getElementById('set-mode').value = settings.mode || 'local';
   document.getElementById('set-dwell').value = settings.identify_dwell_ms ?? 2000;
   document.getElementById('set-candidates').value =
     (settings.identify_candidates || []).join(',');
@@ -248,25 +248,42 @@ function openSettingsModal() {
 }
 
 async function saveSettings() {
-  const mode = document.getElementById('set-mode').value;
   const dwell = parseInt(document.getElementById('set-dwell').value) || 2000;
   const candidatesRaw = document.getElementById('set-candidates').value;
   const candidates = candidatesRaw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
 
   try {
-    const result = await PUT('/api/settings', {
-      mode,
+    settings = await PUT('/api/settings', {
       identify_dwell_ms: dwell,
       identify_candidates: candidates,
     });
-    settings = result;
     closeModal('modal-settings');
-    if (result.relaunch) {
-      showToast(`Switching to ${mode} mode — reconnecting…`, 'info');
-      setTimeout(() => location.reload(), 3000);
-    }
   } catch (e) {
     showToast(e.message, 'error');
+  }
+}
+
+async function enableTray() {
+  const btn = document.getElementById('btn-enable-tray');
+  btn.disabled = true;
+  btn.textContent = 'Switching…';
+  try {
+    await POST('/api/system/enable-tray', {});
+    showToast('Switching to tray — reconnecting…', 'info');
+    setTimeout(() => location.reload(), 3000);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '⬛ Enable Tray';
+    showToast(e.message, 'error');
+  }
+}
+
+async function quitServer() {
+  try {
+    await POST('/api/system/quit', {});
+    showToast('Server stopped.', 'info');
+  } catch (_) {
+    showToast('Server stopped.', 'info');
   }
 }
 
@@ -432,6 +449,8 @@ function closeModal(id) {
 
 // ── Wire up events ─────────────────────────────────────────────────────────
 document.getElementById('btn-add').addEventListener('click', openAddModal);
+document.getElementById('btn-enable-tray').addEventListener('click', enableTray);
+document.getElementById('btn-quit').addEventListener('click', quitServer);
 document.getElementById('btn-settings').addEventListener('click', openSettingsModal);
 document.getElementById('src-cancel').addEventListener('click', () => closeModal('modal-source'));
 document.getElementById('src-save').addEventListener('click', saveSource);

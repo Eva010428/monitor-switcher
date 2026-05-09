@@ -12,7 +12,7 @@ def init(server_config: dict):
 
 def _find_source(current: str, sources: list[dict]) -> dict | None:
     for s in sources:
-        if s["ip"] == current:
+        if s.get("ip") == current:
             return s
     lower = current.lower()
     for s in sources:

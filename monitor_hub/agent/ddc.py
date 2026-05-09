@@ -15,13 +15,34 @@ if sys.platform == "win32":
             result.append({"id": i, "description": desc})
         return result
 
+    class _RWFeature:
+        """Wraps a raw VCP int so older monitorcontrol versions accept it."""
+
+        __slots__ = ("value", "type", "function")
+
+        def __init__(self, vcp_code: int) -> None:
+            self.value = vcp_code
+            self.type = "rw"
+            self.function = "nc"  # non-continuous (INPUT_SELECT is not a slider)
+
+    def _vcp_get(mon, code: int) -> int:
+        if hasattr(mon, "get_vcp_feature"):
+            return mon.get_vcp_feature(code).value
+        return mon._get_vcp_feature(_RWFeature(code)).value
+
+    def _vcp_set(mon, code: int, value: int) -> None:
+        if hasattr(mon, "set_vcp_feature"):
+            mon.set_vcp_feature(code, value)
+        else:
+            mon._set_vcp_feature(_RWFeature(code), value)
+
     def get_input(config: dict, monitor_id: int) -> int:
         with list(_get_monitors())[monitor_id] as mon:
-            return mon.get_vcp_feature(0x60).value
+            return _vcp_get(mon, 0x60)
 
     def set_input(config: dict, monitor_id: int, vcp_value: int) -> None:
         with list(_get_monitors())[monitor_id] as mon:
-            mon.set_vcp_feature(0x60, vcp_value)
+            _vcp_set(mon, 0x60, vcp_value)
 
     def available(config: dict) -> bool:
         try:

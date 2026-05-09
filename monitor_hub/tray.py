@@ -27,12 +27,7 @@ def _start_server(cfg: dict) -> None:
             "No DDC tool found — switching/identify will fail"
         )
 
-    app = create_app(
-        cfg,
-        sources_path(),
-        config_path(),
-        ddc_config=cfg,
-    )
+    app = create_app(cfg, sources_path(), config_path(), ddc_config=cfg)
     host = cfg.get("host", "127.0.0.1")
     port = cfg.get("port", 5000)
     app.run(host=host, port=port, threaded=True, use_reloader=False)

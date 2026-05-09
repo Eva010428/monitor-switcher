@@ -1,8 +1,8 @@
 import json
 import logging
-import subprocess
+import socket
 import sys
-from pathlib import Path
+import webbrowser
 
 from .logging_setup import setup_logging
 from .runtime_paths import config_path, ensure_default_config, sources_path
@@ -11,31 +11,17 @@ from .runtime_paths import config_path, ensure_default_config, sources_path
 logger = logging.getLogger(__name__)
 
 
-def _relaunch_detached() -> None:
-    """Spawn a detached copy of this process and exit the current terminal-attached one."""
-    root = str(Path(__file__).parent.parent)
-    if sys.platform == "win32":
-        subprocess.Popen(
-            ["pythonw", "-m", "monitor_hub"],
-            cwd=root,
-            stdin=subprocess.DEVNULL,
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
-        )
-    else:
-        subprocess.Popen(
-            ["python3", "-m", "monitor_hub"],
-            cwd=root,
-            start_new_session=True,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    sys.exit(0)
-
-
 def _load_config() -> dict:
     path = ensure_default_config()
     return json.loads(path.read_text())
+
+
+def _is_already_running(port: int) -> bool:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            return True
+    except OSError:
+        return False
 
 
 def _run_server(cfg: dict):
@@ -69,22 +55,27 @@ def _run_local(cfg: dict):
 def main():
     setup_logging()
     full_config = _load_config()
-    mode = full_config.get("mode", "local")
+    port = full_config.get("port", 5000)
 
-    if mode == "local":
-        _run_local(full_config)
-    elif mode == "tray":
-        # If launched from a terminal, re-exec detached so closing the terminal
-        # doesn't kill the tray app.
-        if sys.stdin is not None and hasattr(sys.stdin, "isatty") and sys.stdin.isatty():
-            logger.info("[tray] Terminal detected — relaunching detached")
-            _relaunch_detached()
+    tray_mode = "--tray" in sys.argv
+
+    if _is_already_running(port):
+        logger.info("Server already running on port %s — opening browser", port)
+        webbrowser.open(f"http://127.0.0.1:{port}")
+        return
+
+    if tray_mode:
         from .tray import run_tray
         run_tray(full_config)
+        return
+
+    mode = full_config.get("mode", "local")
+    if mode == "local":
+        _run_local(full_config)
     elif mode == "server":
         _run_server(full_config)
-    elif mode in {"both", "agent"}:
-        logger.warning("mode both/agent is deprecated, running as local mode")
+    elif mode in {"both", "agent", "tray"}:
+        logger.warning("mode %r is deprecated, running as local mode", mode)
         _run_local(full_config.get("agent", full_config))
     else:
         logger.error("Unknown mode: %r", mode)

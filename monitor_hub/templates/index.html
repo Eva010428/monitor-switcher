@@ -11,6 +11,8 @@
     <h1>Monitor Hub</h1>
     <div class="header-actions">
       <button id="btn-add" class="btn btn-primary">+ Add Source</button>
+      <button id="btn-enable-tray" class="btn btn-secondary">Enable Tray</button>
+      <button id="btn-quit" class="btn btn-secondary">✕ Quit</button>
       <button id="btn-settings" class="btn btn-secondary">⚙ Settings</button>
     </div>
   </header>
@@ -60,13 +62,6 @@
   <div id="modal-settings" class="modal" hidden>
     <div class="modal-box">
       <h2>Settings</h2>
-      <label>Startup mode
-        <select id="set-mode">
-          <option value="local">Local (headless server)</option>
-          <option value="tray">Tray (system-tray icon)</option>
-        </select>
-        <small>Takes effect on next restart.</small>
-      </label>
       <label>Identify candidates (comma-separated VCP codes)
         <input id="set-candidates" type="text" placeholder="15,16,17,18,19,3,4,27">
       </label>

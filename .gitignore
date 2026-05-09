@@ -51,6 +51,7 @@ AGENTS.md
 # Logs
 *.log
 logs/
+monitor_hub/logs/
 
 # macOS
 .DS_Store
