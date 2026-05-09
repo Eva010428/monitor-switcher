@@ -1,4 +1,3 @@
-import sys
 import threading
 import webbrowser
 
@@ -51,7 +50,6 @@ def run_tray(cfg: dict) -> None:
 
     def quit_app(icon, item):
         icon.stop()
-        sys.exit(0)
 
     menu = pystray.Menu(
         pystray.MenuItem("Open Monitor Hub", open_ui, default=True),
