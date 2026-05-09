@@ -378,11 +378,13 @@ async function probeVcp(monitorId, vcp) {
 function showProbeDecision(monitorId, vcp, result, activeBtn) {
   const box = document.getElementById('id-probe-decision');
   const seconds = Math.round((result.dwell_ms || 3000) / 1000);
+  const restoreNote = result.restored_vcp_code != null
+    ? `for ${seconds}s, then restored to VCP ${result.restored_vcp_code}`
+    : `(monitor switched — auto-restore not available on this platform)`;
   box.hidden = false;
   box.innerHTML = `
     <div>
-      <strong>Monitor ${monitorId}</strong> tested VCP ${vcp} for ${seconds}s,
-      then restored to VCP ${result.restored_vcp_code}.
+      <strong>Monitor ${monitorId}</strong> tested VCP ${vcp} ${restoreNote}.
     </div>
     <div class="probe-actions">
       <button class="btn btn-success" data-action="save">Save VCP ${vcp}</button>

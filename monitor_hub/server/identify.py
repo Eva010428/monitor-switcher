@@ -97,34 +97,41 @@ def probe_identify(session_id: str):
     try:
         prior = session["prior_vcps"].get(int(monitor_id))
         if prior is None:
-            return jsonify({
-                "error": "current VCP is unreadable; cannot safely auto-restore after probing",
-            }), 409
+            # Fall back to the source's saved VCP code for this monitor
+            saved_vcps = session["source"].get("vcp_codes") or {}
+            fallback = saved_vcps.get(str(int(monitor_id))) or saved_vcps.get(int(monitor_id))
+            if fallback is None:
+                fallback = session["source"].get("vcp_code")
+            if fallback is not None:
+                prior = int(fallback)
 
         dwell_ms = int(_config.get("identify_dwell_ms", 3000))
         dwell_s = max(0.5, min(dwell_ms / 1000.0, 10.0))
 
         session["state"] = "probing"
         ddc.set_input(_ddc_config, int(monitor_id), int(vcp_code))
-        time.sleep(dwell_s)
-        last_err = None
-        for attempt in range(5):
-            try:
-                ddc.set_input(_ddc_config, int(monitor_id), prior)
-                break
-            except Exception as e:
-                last_err = e
-                if attempt < 4:
-                    time.sleep(0.4)
-        else:
-            raise RuntimeError(f"restore to VCP {prior} failed after 5 attempts: {last_err}")
+
+        if prior is not None:
+            time.sleep(dwell_s)
+            last_err = None
+            for attempt in range(5):
+                try:
+                    ddc.set_input(_ddc_config, int(monitor_id), prior)
+                    break
+                except Exception as e:
+                    last_err = e
+                    if attempt < 4:
+                        time.sleep(0.4)
+            else:
+                raise RuntimeError(f"restore to VCP {prior} failed after 5 attempts: {last_err}")
+
         session["state"] = "idle"
         return jsonify({
             "ok": True,
             "monitor_id": int(monitor_id),
             "vcp_code": int(vcp_code),
             "restored_vcp_code": prior,
-            "dwell_ms": dwell_ms,
+            "dwell_ms": dwell_ms if prior is not None else 0,
         })
     except Exception as e:
         session["state"] = "error"
