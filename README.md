@@ -6,130 +6,107 @@ Cross-platform tool for switching dual monitor inputs via DDC/CI. Controls monit
 
 ## Features
 
-- **Cross-platform**: Windows (C++) and macOS (Shell + m1ddc/ddcctl)
-- **One-click switching**: Switch all monitors simultaneously
-- **Auto-setup wizard**: Auto-detect input codes, blink brightness to identify monitors, interactive configuration generation
-- **JSON configuration**: Easily editable config file after setup
-- **Portable**: No installation required, single executable approach
-- **Network Hub** *(optional)*: `monitor_hub` — Python Flask service that coordinates switching across machines on the same LAN via a web UI and REST API
+- **Cross-platform**: Windows (`monitorcontrol` library) and macOS (`m1ddc`)
+- **Web UI**: Browser-based dashboard — add sources, identify VCP codes, switch inputs
+- **System tray**: Optional tray mode so the app runs silently in the background
+- **Identify wizard**: Probe candidate VCP codes per monitor, auto-restore after each probe
+- **Per-monitor VCP codes**: Each monitor can have a different input code
+- **No binary compilation required**: Pure Python DDC/CI via `monitorcontrol` (Windows) or `m1ddc` subprocess (macOS)
 
 ## Use Cases
 
-- **Dual-boot systems**: Windows and Mac sharing the same displays, auto-switch inputs when booting
+- **Dual-boot systems**: Windows and Mac sharing the same displays
 - **KVM companion**: KVM switches keyboard/mouse, this tool switches monitor inputs
 - **Workstation switching**: Quick transition between work and personal computers
-- **Multi-machine hub**: One central server manages VCP codes; all machines query it before switching
 
 ---
 
-## Quick Start (Standalone Mode)
+## Requirements
 
-### Step 1: Build (Windows) / Install Dependencies (macOS)
+| Platform | Requirement |
+|----------|-------------|
+| Windows | Python 3.10+, `monitorcontrol` (installed via `pip`) |
+| macOS (Apple Silicon) | Python 3.10+, `m1ddc` (`brew install m1ddc`) |
+| macOS (Intel) | Python 3.10+, `ddcctl` (`brew install ddcctl`) |
 
-#### Windows
+> **Apple Silicon HDMI limitation**: M1/M2/M3/M4 HDMI ports do not support DDC/CI. Connect monitors via **Thunderbolt/USB-C**.
 
-```cmd
-cd windows
-mingw32-make
-copy monitor_switcher.exe ..\bin\
-```
+---
 
-See [windows/BUILD.md](windows/BUILD.md) for detailed build instructions.
+## Quick Start
 
-#### macOS
+### Step 1: Install Dependencies
 
 ```bash
-# Apple Silicon
-brew install m1ddc
+pip install flask monitorcontrol   # Windows
+pip install flask                  # macOS (uses m1ddc subprocess)
 
-# Intel Mac
-brew install ddcctl
-
-chmod +x macos/monitor_switcher.sh switch.sh
+# macOS: also install m1ddc or ddcctl
+brew install m1ddc     # Apple Silicon
+brew install ddcctl    # Intel Mac
 ```
 
-See [macos/BUILD.md](macos/BUILD.md) for details.
-
-### Step 2: Run Setup Wizard
-
-```cmd
-REM Windows
-switch.bat setup
-
-# macOS
-./switch.sh setup
-```
-
-The wizard will automatically:
-1. Blink each monitor's brightness to help you identify which is which
-2. Query DDC/CI capability string (Windows) or probe standard input codes (macOS) to discover available inputs
-3. Interactively name each input (e.g., `dp1`, `hdmi2`)
-4. Ask which input corresponds to Windows and which to Mac
-5. Write configuration to `config/monitors.json`
-
-### Step 3: Usage
-
-```cmd
-REM Windows
-switch.bat windows
-switch.bat mac
-
-# macOS
-./switch.sh windows
-./switch.sh mac
-```
-
----
-
-## Monitor Hub (Network Mode)
-
-`monitor_hub` is an optional Python service that turns one machine into a central switching server. Other machines (agents) query it before switching, so VCP codes are managed in one place.
-
-### Architecture
-
-```
-switch.bat / switch.sh
-  │
-  ├── [MONITOR_SERVER_URL set]  →  GET /api/switch?current=<my_ip>
-  │     monitor_hub server returns { action: "switch", target: { vcp_code/vcp_codes } }
-  │     or { action: "choose", options: [...] } when multiple targets available
-  │     Falls back to local config/monitors.json if server is unreachable
-  │
-  └── [no server URL]  →  local config/monitors.json  →  DDC/CI
-
-monitor_hub (Flask, port 5000)
-  └── web UI + /api/switch, /api/sources, /api/identify, /api/settings
-
-config/monitors.json        ← VCP values and profiles (standalone mode)
-monitor_hub/config.json     ← monitor_hub host, port, and Identify settings
-monitor_hub/sources.json    ← source profiles
-```
-
-### Setup
-
-**1. Copy and edit config:**
+### Step 2: Configure
 
 ```bash
 cp monitor_hub/config.example.json monitor_hub/config.json
-# Edit config.json host/port if needed
+# Edit host/port if needed (defaults: 0.0.0.0:5000)
 ```
 
-**2. Install Python dependencies:**
+### Step 3: Start
 
 ```bash
-pip install flask
+python -m monitor_hub            # web server mode (terminal stays open)
+python -m monitor_hub --tray     # system tray mode (detached, browser opens automatically)
 ```
 
-**3. Run:**
+Open `http://localhost:5000` if not opened automatically.
 
-```bash
-python -m monitor_hub
-# or via PyInstaller bundle:
-./monitor_hub        # macOS/Linux
-monitor_hub.exe      # Windows
+### Step 4: Add Sources and Identify
+
+1. Click **+ Add Source** — give this machine a name (e.g., "Windows PC")
+2. Click **Identify** next to the source
+3. For each monitor, click a candidate VCP code to probe it — the monitor briefly switches then auto-restores
+4. Click **Save** when the probe switched to the expected input, then **Confirm**
+5. Repeat for other sources (e.g., "Mac Mini")
+
+Once VCP codes are saved, use the **switch buttons** on each source card to switch all monitors at once.
+
+---
+
+## Architecture
+
+```
+monitor_hub/
+  ├── __main__.py          ← entry point; --tray flag for tray mode
+  ├── tray.py              ← pystray system tray launcher
+  ├── server/
+  │   ├── app.py           ← Flask app factory
+  │   ├── sources.py       ← /api/sources CRUD
+  │   ├── execute_switch.py← POST /api/sources/<id>/switch
+  │   ├── identify.py      ← /api/identify/* session workflow
+  │   └── settings.py      ← GET|PUT /api/settings; POST /api/system/quit|enable-tray
+  ├── agent/
+  │   └── ddc.py           ← DDC/CI abstraction (monitorcontrol on Windows, m1ddc on macOS)
+  ├── templates/index.html ← web UI
+  ├── static/              ← app.js, style.css
+  ├── config.example.json  ← template; copy to config.json
+  └── requirements.txt
+
+monitor_hub/config.json    ← host, port, identify_candidates, identify_dwell_ms
+monitor_hub/sources.json   ← source profiles (auto-created)
 ```
 
-### Configuration
+**Sources data model:**
+- `"vcp_codes": {"0": 15, "1": 17}` — per-monitor VCP codes (monitor index → value)
+- `"vcp_code": 15` — optional legacy single-code field (set when all monitors share the same code)
+
+**Identify session flow:**
+1. `POST /api/identify/<source_id>/start` — reads current VCP per monitor (if supported), returns candidate list
+2. `POST /api/identify/<session_id>/probe` — sets one monitor to a candidate VCP for `identify_dwell_ms`, then restores
+3. `POST /api/identify/<session_id>/confirm` — persists confirmed VCP codes to `sources.json`
+
+**Configuration** (`monitor_hub/config.json`):
 
 ```json
 {
@@ -140,70 +117,45 @@ monitor_hub.exe      # Windows
 }
 ```
 
-### Using switch.bat / switch.sh with the hub
-
-Set the `MONITOR_SERVER_URL` environment variable before running the launcher:
-
-```cmd
-REM Windows — set permanently
-setx MONITOR_SERVER_URL http://192.168.1.50:5000
-
-REM or per-session
-set MONITOR_SERVER_URL=http://192.168.1.50:5000
-switch.bat
-```
-
-```bash
-# macOS — add to ~/.zshrc or ~/.bash_profile
-export MONITOR_SERVER_URL=http://192.168.1.50:5000
-./switch.sh
-```
-
-When the variable is set, the launcher:
-1. Detects its own LAN IP
-2. Calls `GET /api/switch?current=<my_ip>`
-3. Applies the returned VCP code(s) to local monitors
-4. Falls back silently to local `config/monitors.json` if server is unreachable
-
-### Web UI
-
-Open `http://<server-ip>:5000` in a browser:
-
-- **Add Source**: register a machine by name and IP
-- **Identify**: click a candidate VCP code to test one monitor, wait for auto-restore, then Save or Discard the result before Confirm
-- **Quick switch buttons**: source cards can switch an online agent directly to another saved source
-- **Settings**: configure `identify_candidates` and `identify_dwell_ms`
-
-Source names are unique. If an agent in `both` mode starts and a source with the same name already exists, registration is skipped instead of creating a duplicate `127.0.0.1` entry.
-
-### Build Standalone Executable (PyInstaller)
-
-```bash
-pip install pyinstaller flask
-pyinstaller monitor_hub.spec
-# output: dist/monitor_hub.exe (Windows) or dist/monitor_hub (macOS)
-```
-
 ---
 
-## Low-Level Commands
-
-Direct DDC/CI operations for troubleshooting or manual adjustments:
-
-```cmd
-REM Windows
-bin\monitor_switcher.exe detect
-bin\monitor_switcher.exe getvcp 0 60
-bin\monitor_switcher.exe setvcp 0 60 15
-bin\monitor_switcher.exe capabilities 0
-```
+## System Tray Mode
 
 ```bash
-# macOS (depending on tool)
-m1ddc display 1 get input
-m1ddc display 1 set input 15
-ddcctl -d 1
-ddcctl -d 1 -i 15
+python -m monitor_hub --tray
+```
+
+- Tray icon appears in the system tray
+- Browser opens automatically on first launch
+- "Open Monitor Hub" reopens the browser
+- "Quit" exits the process
+
+**Auto-start on login:**
+
+Windows — create a shortcut in `shell:startup` pointing to:
+```
+pythonw -m monitor_hub --tray
+```
+(`pythonw` suppresses the console window.)
+
+macOS — create `~/Library/LaunchAgents/com.user.monitorhub.plist`:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.user.monitorhub</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>-m</string>
+        <string>monitor_hub</string>
+        <string>--tray</string>
+    </array>
+    <key>WorkingDirectory</key><string>/path/to/monitor-switcher</string>
+    <key>RunAtLoad</key><true/>
+</dict>
+</plist>
 ```
 
 ---
@@ -221,60 +173,7 @@ ddcctl -d 1 -i 15
 | HDMI 3 | 19 |
 | USB-C / DP | 27 |
 
-Actual values vary by monitor manufacturer. Use values detected by the `setup` wizard or the Identify feature in Monitor Hub.
-
----
-
-## Advanced Usage
-
-### Create Desktop Shortcuts (Windows)
-
-1. Right-click Desktop → New → Shortcut
-2. Location: `C:\path\to\monitor-switcher\switch.bat mac`
-3. Can set hotkey (Shortcut properties → Shortcut key field)
-
-### Create Automator App (macOS)
-
-1. Open Automator → New Application
-2. Add "Run Shell Script"
-3. Enter: `/path/to/switch.sh mac`
-4. Save as "Switch to Mac.app" and drag to Dock
-
-### Auto-run on Startup (Windows)
-
-```cmd
-schtasks /create /tn "SwitchToWindows" /tr "C:\path\to\switch.bat windows" /sc onlogon
-```
-
-### Auto-run on Startup (macOS LaunchAgent)
-
-Create `~/Library/LaunchAgents/com.user.monitorswitcher.plist`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key><string>com.user.monitorswitcher</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/path/to/switch.sh</string>
-        <string>mac</string>
-    </array>
-    <key>RunAtLoad</key><true/>
-</dict>
-</plist>
-```
-
-### Auto-start Monitor Hub (Windows Service / macOS LaunchAgent)
-
-**Windows** — run at login via Task Scheduler:
-
-```cmd
-schtasks /create /tn "MonitorHub" /tr "C:\path\to\monitor_hub.exe" /sc onlogon /ru SYSTEM
-```
-
-**macOS** — run at login via LaunchAgent (same pattern as above, point to `monitor_hub` binary).
+Actual values vary by monitor manufacturer. Use the Identify feature to discover the correct code for your setup.
 
 ---
 
@@ -282,73 +181,63 @@ schtasks /create /tn "MonitorHub" /tr "C:\path\to\monitor_hub.exe" /sc onlogon /
 
 ### Windows
 
-**"Failed to get the vcp code value"**
+**Identify probe has no effect / monitor doesn't switch**
 - Enable DDC/CI in monitor OSD menu
-- Run as Administrator
+- Try running as Administrator
 - Update graphics driver
 
-**Monitor not detected**
-- Ensure monitor is powered on and connected
-- Reseat cables
-- Update graphics driver
-
-**Compilation errors**
-- Ensure Windows SDK is installed (includes `PhysicalMonitorEnumerationAPI.h`)
-- Verify `Dxva2.lib` is linked
-- See [windows/BUILD.md](windows/BUILD.md)
+**`monitorcontrol` not found**
+```cmd
+pip install monitorcontrol
+```
 
 ### macOS
 
 **⚠️ Apple Silicon HDMI Limitation**
 
-Apple Silicon Macs (M1/M2/M3/M4) **HDMI ports do not support DDC/CI at the hardware level**. Must connect monitors via **Thunderbolt/USB-C** for auto-switching to work.
+Apple Silicon Macs (M1/M2/M3/M4) HDMI ports do not support DDC/CI at the hardware level. Connect monitors via **Thunderbolt/USB-C**.
 
-If your monitor only has HDMI: use auto-switching on Windows side only, manually press monitor OSD buttons when on macOS.
-
-**"ddcctl: command not found"**
+**`m1ddc: command not found`**
 ```bash
-brew install ddcctl    # Intel Mac
 brew install m1ddc     # Apple Silicon
+brew install ddcctl    # Intel Mac
 ```
 
-**DDC communication failure**
-- Most common cause: monitor connected via HDMI to Apple Silicon Mac
-- Solution: switch to USB-C/Thunderbolt connection
-
-### Monitor Hub
-
-**Other machines can't reach Monitor Hub**
-- Check `host` and `port` in `monitor_hub/config.json`
-- Verify firewall allows port 5000
-- Check Monitor Hub is running: `curl http://<hub-ip>:5000/`
-
-**switch.bat / switch.sh ignores server**
-- Confirm `MONITOR_SERVER_URL` env var is set in the same shell session
-- The launcher falls back silently to local config if the server returns an error
-
-**Identify wizard doesn't change monitor input**
-- Monitor Hub must be running on the machine with the monitors
-- macOS: confirm `macos/monitor_switcher.sh` is executable
-- macOS: if a monitor switches away and cannot auto-restore, reduce `identify_dwell_ms`; some displays drop DDC/CI access after switching inputs
+**Identify probe doesn't restore the monitor**
+- Reduce `identify_dwell_ms` in `config.json` (e.g., `1500`) — some displays drop DDC/CI access after input switch
 
 ### General
 
-**One monitor switches, the other doesn't**
-- The two monitors may use different VCP values
-- Re-run the `setup` wizard
+**Port already in use**
+- Change `port` in `config.json`
+- Or kill the existing process: `lsof -ti:5000 | xargs kill` (macOS/Linux)
 
-**Monitor goes black for a few seconds after switching**
-- Normal behavior, monitors need time to switch inputs
+**One monitor switches, the other doesn't**
+- Each monitor may need a different VCP code — re-run Identify
+
+---
+
+## Legacy Standalone Mode
+
+The original C++/Shell binary-based standalone switcher is preserved in `legacy/`:
+
+```
+legacy/
+  ├── switch.bat / switch.sh   ← high-level launchers
+  ├── windows/                 ← C++ source (monitor_switcher.cpp)
+  └── macos/                   ← Shell scripts (monitor_switcher.sh)
+```
+
+These scripts supported `MONITOR_SERVER_URL` for querying a remote Monitor Hub. They are no longer maintained. See the git history for details.
 
 ---
 
 ## Acknowledgments
 
-- **Windows implementation**: Based on [DDC/CI Windows API](https://blog.csdn.net/sinat_26143945/article/details/135137436) example
-- **macOS implementation**: Uses [ddcctl](https://github.com/kfix/ddcctl)
-- **JSON library**: [nlohmann/json](https://github.com/nlohmann/json)
+- **Windows DDC/CI**: [`monitorcontrol`](https://github.com/newAM/monitorcontrol) library
+- **macOS DDC**: [`m1ddc`](https://github.com/waydabber/m1ddc) / [`ddcctl`](https://github.com/kfix/ddcctl)
+- **JSON library** (legacy C++): [nlohmann/json](https://github.com/nlohmann/json)
 
 ## License
 
-- This project integration code: MIT License
-- macOS ddcctl tool: GPL v3 License
+MIT License
