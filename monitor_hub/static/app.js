@@ -68,11 +68,6 @@ function vcpLabel(source) {
   return `<span class="vcp-ok">VCP: ${source.vcp_code}${confirmed}</span>`;
 }
 
-function statusDot(status) {
-  const cls = { online: 'dot-online', offline: 'dot-offline' }[status] || 'dot-unknown';
-  return `<span class="dot ${cls}"></span>${status ?? 'unknown'}`;
-}
-
 function renderSources() {
   const grid = document.getElementById('sources-grid');
   const empty = document.getElementById('empty-msg');
@@ -90,9 +85,7 @@ function renderSources() {
     card.dataset.id = src.id;
     card.innerHTML = `
       <div class="card-name" title="${src.name}">${src.name}</div>
-      <div class="card-ip">${src.ip}:${src.agent_port ?? 5001}</div>
       <div class="card-vcp">${vcpLabel(src)}</div>
-      <div class="card-status">${statusDot(src.status)}</div>
       <div class="card-actions">
         <button class="btn btn-secondary btn-identify">Identify</button>
         <button class="btn btn-secondary btn-edit">Edit</button>
@@ -102,7 +95,7 @@ function renderSources() {
     card.querySelector('.btn-identify').addEventListener('click', () => startIdentify(src));
     card.querySelector('.btn-edit').addEventListener('click', () => openEditModal(src));
     card.querySelector('.btn-delete').addEventListener('click', () => deleteSource(src));
-    renderSwitchButtons(card, src, sources);
+    renderSwitchButtons(card, src);
     grid.appendChild(card);
   }
 }
@@ -112,97 +105,41 @@ function hasVcp(src) {
     (src.vcp_codes && Object.keys(src.vcp_codes).length > 0);
 }
 
-function renderSwitchButtons(card, src, allSources) {
-  const others = allSources.filter(s => s.id !== src.id);
-  if (others.length === 0) return;
-
+function renderSwitchButtons(card, src) {
+  if (!hasVcp(src)) return;
   const row = document.createElement('div');
   row.className = 'card-switch';
-  const isOffline = src.status !== 'online';
-
-  if (allSources.length >= 4) {
-    // Compact dropdown
-    const sel = document.createElement('select');
-    sel.className = 'switch-select';
-    const ph = document.createElement('option');
-    ph.value = ''; ph.textContent = '→ Switch to…';
-    ph.disabled = true; ph.selected = true;
-    sel.appendChild(ph);
-    let hasAny = false;
-    for (const t of others) {
-      const opt = document.createElement('option');
-      opt.value = t.id; opt.textContent = t.name;
-      opt.disabled = isOffline || !hasVcp(t);
-      sel.appendChild(opt);
-      if (!opt.disabled) hasAny = true;
-    }
-    sel.disabled = isOffline || !hasAny;
-    sel.addEventListener('change', () => {
-      const tid = sel.value; if (!tid) return;
-      sel.value = '';
-      doSwitch(src, tid, sel);
-    });
-    const errSpan = document.createElement('span');
-    errSpan.className = 'switch-err-msg'; errSpan.hidden = true;
-    row.appendChild(sel);
-    row.appendChild(errSpan);
-  } else {
-    // Inline buttons (≤3 sources → max 2 buttons per card)
-    for (const t of others) {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-switch';
-      btn.textContent = `→ ${t.name}`;
-      btn.disabled = isOffline || !hasVcp(t);
-      btn.title = isOffline ? `${src.name} is offline`
-        : !hasVcp(t) ? `${t.name} has no VCP code set`
-        : `Switch ${src.name}'s monitors to ${t.name}`;
-      btn.addEventListener('click', () => doSwitch(src, t.id, btn));
-      row.appendChild(btn);
-    }
-  }
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-switch';
+  btn.textContent = '→ Apply';
+  btn.title = `Switch local monitors to ${src.name}`;
+  btn.addEventListener('click', () => doSwitch(src, btn));
+  row.appendChild(btn);
   card.appendChild(row);
 }
 
-async function doSwitch(src, targetId, trigger) {
-  const isBtn = trigger.tagName === 'BUTTON';
-  if (isBtn) {
-    trigger.disabled = true;
-    trigger.dataset.orig = trigger.textContent;
-    trigger.textContent = '↻';
-  } else {
-    trigger.disabled = true;
-  }
+async function doSwitch(src, trigger) {
+  trigger.disabled = true;
+  const orig = trigger.textContent;
+  trigger.textContent = '↻';
   try {
-    await POST(`/api/sources/${src.id}/switch`, { target_source_id: targetId });
-    if (isBtn) {
-      trigger.textContent = '✓';
-      trigger.classList.add('btn-switch-ok');
-      setTimeout(() => {
-        trigger.textContent = trigger.dataset.orig;
-        trigger.classList.remove('btn-switch-ok');
-        trigger.disabled = false;
-      }, 2000);
-    } else {
+    await POST(`/api/sources/${src.id}/switch`, {});
+    trigger.textContent = '✓';
+    trigger.classList.add('btn-switch-ok');
+    setTimeout(() => {
+      trigger.textContent = orig;
+      trigger.classList.remove('btn-switch-ok');
       trigger.disabled = false;
-    }
+    }, 2000);
   } catch (e) {
-    if (isBtn) {
-      trigger.textContent = '✕';
-      trigger.classList.add('btn-switch-err');
-      trigger.title = e.message;
-      setTimeout(() => {
-        trigger.textContent = trigger.dataset.orig;
-        trigger.classList.remove('btn-switch-err');
-        trigger.disabled = false;
-      }, 2000);
-    } else {
+    trigger.textContent = '✕';
+    trigger.classList.add('btn-switch-err');
+    trigger.title = e.message;
+    setTimeout(() => {
+      trigger.textContent = orig;
+      trigger.classList.remove('btn-switch-err');
       trigger.disabled = false;
-      const errSpan = trigger.parentElement.querySelector('.switch-err-msg');
-      if (errSpan) {
-        errSpan.textContent = e.message; errSpan.hidden = false;
-        setTimeout(() => { errSpan.hidden = true; }, 3000);
-      }
-    }
+    }, 2000);
   }
 }
 
@@ -212,6 +149,10 @@ async function loadAll() {
     GET('/api/sources').then(d => d.sources),
     GET('/api/settings'),
   ]);
+  const localControlsVisible = !!settings.local_request;
+  document.getElementById('btn-enable-tray').hidden =
+    !localControlsVisible || !!settings.tray_active;
+  document.getElementById('btn-quit').hidden = !localControlsVisible;
   renderSources();
 }
 
@@ -229,8 +170,7 @@ function openAddModal() {
   editingId = null;
   document.getElementById('modal-source-title').textContent = 'Add Source';
   document.getElementById('src-name').value = '';
-  document.getElementById('src-ip').value = '';
-  document.getElementById('src-agent-port').value = '5001';
+  document.getElementById('src-vcp-manual').value = '';
   showModal('modal-source');
 }
 
@@ -238,27 +178,50 @@ function openEditModal(src) {
   editingId = src.id;
   document.getElementById('modal-source-title').textContent = 'Edit Source';
   document.getElementById('src-name').value = src.name;
-  document.getElementById('src-ip').value = src.ip;
-  document.getElementById('src-agent-port').value = src.agent_port ?? 5001;
+  if (src.vcp_codes && Object.keys(src.vcp_codes).length) {
+    const val = Object.entries(src.vcp_codes)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([, v]) => v)
+      .join(', ');
+    document.getElementById('src-vcp-manual').value = val;
+  } else if (src.vcp_code != null) {
+    document.getElementById('src-vcp-manual').value = src.vcp_code;
+  } else {
+    document.getElementById('src-vcp-manual').value = '';
+  }
   showModal('modal-source');
 }
 
 async function saveSource() {
   const name = document.getElementById('src-name').value.trim();
-  const ip = document.getElementById('src-ip').value.trim();
-  const agentPort = parseInt(document.getElementById('src-agent-port').value) || 5001;
+  const vcpRaw = document.getElementById('src-vcp-manual').value.trim();
 
-  if (!name || !ip) {
-    const message = 'Name and IP are required.';
-    showToast(message, 'error');
+  if (!name) {
+    showToast('Name is required.', 'error');
     return;
   }
 
+  let vcp_codes = null;
+  let vcp_code = null;
+  if (vcpRaw) {
+    const vals = vcpRaw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (vals.length === 1) {
+      vcp_code = vals[0];
+    } else if (vals.length > 1) {
+      vcp_codes = {};
+      vals.forEach((v, i) => { vcp_codes[String(i)] = v; });
+    }
+  }
+
   try {
+    const payload = { name };
+    if (vcp_codes) { payload.vcp_codes = vcp_codes; payload.vcp_code_confirmed = true; }
+    else if (vcp_code != null) { payload.vcp_code = vcp_code; payload.vcp_code_confirmed = true; }
+
     if (editingId) {
-      await PUT(`/api/sources/${editingId}`, { name, ip, agent_port: agentPort });
+      await PUT(`/api/sources/${editingId}`, payload);
     } else {
-      await POST('/api/sources', { name, ip, agent_port: agentPort });
+      await POST('/api/sources', payload);
     }
     closeModal('modal-source');
     await loadAll();
@@ -300,6 +263,30 @@ async function saveSettings() {
     closeModal('modal-settings');
   } catch (e) {
     showToast(e.message, 'error');
+  }
+}
+
+async function enableTray() {
+  const btn = document.getElementById('btn-enable-tray');
+  btn.disabled = true;
+  btn.textContent = 'Switching…';
+  try {
+    await POST('/api/system/enable-tray', {});
+    showToast('Switching to tray — reconnecting…', 'info');
+    setTimeout(() => location.reload(), 3000);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '⬛ Enable Tray';
+    showToast(e.message, 'error');
+  }
+}
+
+async function quitServer() {
+  try {
+    await POST('/api/system/quit', {});
+    showToast('Server stopped.', 'info');
+  } catch (_) {
+    showToast('Server stopped.', 'info');
   }
 }
 
@@ -394,11 +381,13 @@ async function probeVcp(monitorId, vcp) {
 function showProbeDecision(monitorId, vcp, result, activeBtn) {
   const box = document.getElementById('id-probe-decision');
   const seconds = Math.round((result.dwell_ms || 3000) / 1000);
+  const restoreNote = result.restored_vcp_code != null
+    ? `for ${seconds}s, then restored to VCP ${result.restored_vcp_code}`
+    : `(monitor switched — auto-restore not available on this platform)`;
   box.hidden = false;
   box.innerHTML = `
     <div>
-      <strong>Monitor ${monitorId}</strong> tested VCP ${vcp} for ${seconds}s,
-      then restored to VCP ${result.restored_vcp_code}.
+      <strong>Monitor ${monitorId}</strong> tested VCP ${vcp} ${restoreNote}.
     </div>
     <div class="probe-actions">
       <button class="btn btn-success" data-action="save">Save VCP ${vcp}</button>
@@ -465,6 +454,8 @@ function closeModal(id) {
 
 // ── Wire up events ─────────────────────────────────────────────────────────
 document.getElementById('btn-add').addEventListener('click', openAddModal);
+document.getElementById('btn-enable-tray').addEventListener('click', enableTray);
+document.getElementById('btn-quit').addEventListener('click', quitServer);
 document.getElementById('btn-settings').addEventListener('click', openSettingsModal);
 document.getElementById('src-cancel').addEventListener('click', () => closeModal('modal-source'));
 document.getElementById('src-save').addEventListener('click', saveSource);

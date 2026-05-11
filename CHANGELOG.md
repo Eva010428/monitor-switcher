@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Monitor Hub Settings now only exposes Identify candidates and dwell time.
 - Add/Edit Source no longer accepts manual VCP code entry; VCP codes are managed through Identify.
-- Agent/source names are unique to prevent `both` mode from creating duplicate localhost sources.
+- Monitor Hub now runs as one local web process without server/agent/both modes.
 - macOS multi-monitor switching continues through later displays when one DDC set fails.
 
 ### Planned Features
