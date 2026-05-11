@@ -72,6 +72,25 @@ Open `http://localhost:5000` if not opened automatically.
 
 Once VCP codes are saved, use the **switch buttons** on each source card to switch all monitors at once.
 
+> **Tip**: You can also enter VCP codes manually in the Add/Edit Source dialog (comma-separated, one per monitor, e.g. `15, 17`). Useful if you already know the codes from the monitor's spec.
+
+---
+
+## Web UI
+
+Open `http://<server-ip>:5000` in a browser.
+
+| Button / Feature | Description |
+|---|---|
+| **+ Add Source** | Create a named input profile; optionally enter VCP codes manually (comma-separated, one per monitor) |
+| **Identify** | Interactive VCP discovery — probes one monitor at a time, auto-restores after each probe |
+| **Switch buttons** | Per-source-card buttons that immediately switch all local monitors to that source's saved VCP codes |
+| **⚙ Settings** | Edit `identify_candidates` and `identify_dwell_ms` |
+| **Enable Tray** | Re-launch the server as a background tray app and close the terminal process |
+| **✕ Quit** | Stop the server process |
+
+> **Localhost-only controls**: The **Enable Tray** and **Quit** buttons are only shown when the browser is on the same machine as the server (request comes from `127.0.0.1` or `::1`). Remote browsers on the LAN see neither button. This is enforced on both the UI side (via the `local_request` field in `GET /api/settings`) and the server side (HTTP 403 for non-localhost callers).
+
 ---
 
 ## Architecture
@@ -103,7 +122,7 @@ monitor_hub/sources.json   ← source profiles (auto-created)
 
 **Identify session flow:**
 1. `POST /api/identify/<source_id>/start` — reads current VCP per monitor (if supported), returns candidate list
-2. `POST /api/identify/<session_id>/probe` — sets one monitor to a candidate VCP for `identify_dwell_ms`, then restores
+2. `POST /api/identify/<session_id>/probe` — sets one monitor to a candidate VCP for `identify_dwell_ms`, then restores; falls back to the source's saved VCP codes as restore target when DDC readback is unsupported (always on macOS, sometimes on Windows)
 3. `POST /api/identify/<session_id>/confirm` — persists confirmed VCP codes to `sources.json`
 
 **Configuration** (`monitor_hub/config.json`):
@@ -116,6 +135,8 @@ monitor_hub/sources.json   ← source profiles (auto-created)
   "identify_dwell_ms": 3000
 }
 ```
+
+> **Note on `host`**: Setting `host` to a LAN IP (e.g., `"192.168.1.50"`) does **not** restrict which interface the server binds to — it always binds `0.0.0.0`. Only `"127.0.0.1"` or `"::1"` produces a loopback-only bind.
 
 ---
 

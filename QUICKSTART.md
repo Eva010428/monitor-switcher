@@ -50,18 +50,24 @@ Open `http://localhost:5000` in a browser.
 ## Step 4: Add a Source and Identify VCP Codes
 
 1. Click **+ Add Source** — enter a name for this machine (e.g. "Windows PC")
-2. Click **Identify** on the source card
-3. For each monitor listed:
-   - Click a candidate VCP code button to probe it
+   - Optionally enter VCP codes directly (comma-separated, one per monitor, e.g. `15, 17`) if you already know them
+2. Click **Identify** on the source card to discover codes interactively:
+   - For each monitor, click a candidate VCP code button to probe it
    - The monitor will briefly switch inputs and then auto-restore
    - Click **Save** when the probe switched to the expected input
-4. Click **Confirm** to save the codes
+3. Click **Confirm** to save the codes
 
 ---
 
 ## Step 5: Switch Inputs
 
 On the source card, click the switch button for the target source. All monitors switch simultaneously.
+
+---
+
+## Web UI: Quit and Enable Tray
+
+The **✕ Quit** and **Enable Tray** buttons are only visible when the browser is on the **same machine** as the server. Remote browsers on the LAN do not see these buttons, and the server rejects the requests with HTTP 403 even if called directly.
 
 ---
 
