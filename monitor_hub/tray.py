@@ -18,7 +18,7 @@ def _start_server(cfg: dict) -> None:
     import logging
     from .agent import ddc
     from .logging_setup import setup_logging
-    from .net import bind_host
+    from .net import advertised_host, bind_host
     from .runtime_paths import config_path, sources_path
     from .server.app import create_app
 
@@ -32,6 +32,10 @@ def _start_server(cfg: dict) -> None:
     host = cfg.get("host", "0.0.0.0")
     bind = bind_host(host)
     port = cfg.get("port", 5000)
+    logging.getLogger(__name__).info(
+        "Starting Monitor Hub — LAN: http://%s:%s (bind %s)",
+        advertised_host(host), port, bind,
+    )
     app.run(host=bind, port=port, threaded=True, use_reloader=False)
 
 

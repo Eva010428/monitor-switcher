@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 
@@ -9,8 +10,14 @@ DEFAULT_CONFIG = {
     "identify_dwell_ms": 3000,
 }
 
-# All runtime data lives inside the monitor_hub package directory
-_DATA_DIR = Path(__file__).parent
+# All runtime data lives next to the running code. When frozen by PyInstaller,
+# __file__ resolves inside the temp extraction dir (sys._MEIPASS), which is
+# wiped after the process exits — writing config/sources there would lose
+# them on every restart, so use the exe's own directory instead.
+if getattr(sys, "frozen", False):
+    _DATA_DIR = Path(sys.executable).parent
+else:
+    _DATA_DIR = Path(__file__).parent
 
 
 def config_path() -> Path:

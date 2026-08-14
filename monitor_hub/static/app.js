@@ -153,6 +153,10 @@ async function loadAll() {
   document.getElementById('btn-enable-tray').hidden =
     !localControlsVisible || !!settings.tray_active;
   document.getElementById('btn-quit').hidden = !localControlsVisible;
+  if (settings.lan_url) {
+    document.getElementById('lan-url-value').textContent = settings.lan_url;
+    document.getElementById('lan-url-hint').hidden = false;
+  }
   renderSources();
 }
 

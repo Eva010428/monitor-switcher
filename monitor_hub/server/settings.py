@@ -7,6 +7,8 @@ import logging
 from pathlib import Path
 from flask import Blueprint, abort, jsonify, request
 
+from ..net import advertised_host
+
 bp = Blueprint("settings", __name__)
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,8 @@ def _public(cfg: dict) -> dict:
 
 
 def _project_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
     return Path(__file__).parent.parent.parent
 
 
@@ -70,6 +74,8 @@ def get_settings():
     result = _public(_config)
     result["tray_active"] = "--tray" in sys.argv
     result["local_request"] = _is_local_request()
+    port = _config.get("port", 5000)
+    result["lan_url"] = f"http://{advertised_host(_config.get('host'))}:{port}"
     return jsonify(result)
 
 

@@ -153,13 +153,38 @@ python -m monitor_hub --tray
 
 **Auto-start on login:**
 
-Windows — create a shortcut in `shell:startup` pointing to:
+### Windows — standalone `.exe` (recommended)
+
+Building a standalone executable avoids depending on your Python environment being intact/on PATH after a reboot, and launches with no console window flash.
+
+```cmd
+pip install pyinstaller
+pyinstaller monitor_hub.spec
+```
+
+This produces `dist\monitor_hub.exe`, which is self-contained — `config.json`, `sources.json`, and `logs\` are created next to the exe on first run (independent of the source checkout).
+
+Then create a shortcut in `shell:startup` (open the Run dialog, type `shell:startup`, hit Enter) pointing to:
+```
+Target:            C:\path\to\monitor-switcher\dist\monitor_hub.exe --tray
+Start in:          C:\path\to\monitor-switcher\dist
+```
+
+Windows launches the shortcut automatically on login; the tray icon appears with no visible window.
+
+> **Rebuilding**: re-run `pyinstaller monitor_hub.spec` after pulling code changes to refresh `dist\monitor_hub.exe`. The shortcut keeps working since the path doesn't change.
+
+### Windows — plain Python (no build step)
+
+If you'd rather not build an exe, create a shortcut in `shell:startup` pointing to:
 ```
 pythonw -m monitor_hub --tray
 ```
-(`pythonw` suppresses the console window.)
+(`pythonw` suppresses the console window.) This depends on Python and the project's dependencies being installed in the environment `pythonw` resolves to.
 
-macOS — create `~/Library/LaunchAgents/com.user.monitorhub.plist`:
+### macOS
+
+Create `~/Library/LaunchAgents/com.user.monitorhub.plist`:
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

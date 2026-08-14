@@ -5,7 +5,7 @@ import sys
 import webbrowser
 
 from .logging_setup import setup_logging
-from .net import bind_host
+from .net import advertised_host, bind_host
 from .runtime_paths import config_path, ensure_default_config, sources_path
 
 
@@ -38,7 +38,10 @@ def _run_hub(cfg: dict):
     host = cfg.get("host", "0.0.0.0")
     bind = bind_host(host)
     port = cfg.get("port", 5000)
-    logger.info("Starting Monitor Hub on http://%s:%s (bind %s)", host, port, bind)
+    logger.info(
+        "Starting Monitor Hub — LAN: http://%s:%s (bind %s)",
+        advertised_host(host), port, bind,
+    )
     app = create_app(cfg, hub_sources_path, hub_config_path, ddc_config=cfg)
     app.run(host=bind, port=port, threaded=True)
 
