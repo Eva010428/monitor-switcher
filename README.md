@@ -35,44 +35,19 @@ Cross-platform tool for switching dual monitor inputs via DDC/CI. Controls monit
 
 ## Quick Start
 
-### Step 1: Install Dependencies
-
 ```bash
 pip install flask monitorcontrol   # Windows
-pip install flask                  # macOS (uses m1ddc subprocess)
+pip install flask                  # macOS (uses m1ddc subprocess; also: brew install m1ddc)
 
-# macOS: also install m1ddc or ddcctl
-brew install m1ddc     # Apple Silicon
-brew install ddcctl    # Intel Mac
-```
-
-### Step 2: Configure
-
-```bash
 cp monitor_hub/config.example.json monitor_hub/config.json
-# Edit host/port if needed (defaults: 0.0.0.0:5000)
-```
 
-### Step 3: Start
-
-```bash
 python -m monitor_hub            # web server mode (terminal stays open)
 python -m monitor_hub --tray     # system tray mode (detached, browser opens automatically)
 ```
 
-Open `http://localhost:5000` if not opened automatically.
+Open `http://localhost:5000`, add a source, then **Identify** to discover VCP codes per monitor.
 
-### Step 4: Add Sources and Identify
-
-1. Click **+ Add Source** — give this machine a name (e.g., "Windows PC")
-2. Click **Identify** next to the source
-3. For each monitor, click a candidate VCP code to probe it — the monitor briefly switches then auto-restores
-4. Click **Save** when the probe switched to the expected input, then **Confirm**
-5. Repeat for other sources (e.g., "Mac Mini")
-
-Once VCP codes are saved, use the **switch buttons** on each source card to switch all monitors at once.
-
-> **Tip**: You can also enter VCP codes manually in the Add/Edit Source dialog (comma-separated, one per monitor, e.g. `15, 17`). Useful if you already know the codes from the monitor's spec.
+See **[QUICKSTART.md](QUICKSTART.md)** for the full step-by-step walkthrough, including the Identify flow and common issues.
 
 ---
 
