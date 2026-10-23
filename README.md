@@ -93,7 +93,7 @@ monitor_hub/sources.json   ← source profiles (auto-created)
 
 **Sources data model:**
 - `"vcp_codes": {"0": 15, "1": 17}` — per-monitor VCP codes (monitor index → value)
-- `"vcp_code": 15` — optional legacy single-code field (set when all monitors share the same code)
+- `"vcp_code": 15` — optional single-code field (set when all monitors share the same code, or entered manually)
 
 **Identify session flow:**
 1. `POST /api/identify/<source_id>/start` — reads current VCP per monitor (if supported), returns candidate list
@@ -238,18 +238,9 @@ brew install ddcctl    # Intel Mac
 
 ---
 
-## Legacy Standalone Mode
+## History
 
-The original C++/Shell binary-based standalone switcher is preserved in `legacy/`:
-
-```
-legacy/
-  ├── switch.bat / switch.sh   ← high-level launchers
-  ├── windows/                 ← C++ source (monitor_switcher.cpp)
-  └── macos/                   ← Shell scripts (monitor_switcher.sh)
-```
-
-These scripts supported `MONITOR_SERVER_URL` for querying a remote Monitor Hub. They are no longer maintained. See the git history for details.
+The original v1.x standalone switcher (C++ on Windows, Shell on macOS, no web UI) was removed after the 2.0.0 rewrite to Monitor Hub. See the `CHANGELOG.md` and git tags for the pre-rewrite source.
 
 ---
 
@@ -257,7 +248,6 @@ These scripts supported `MONITOR_SERVER_URL` for querying a remote Monitor Hub. 
 
 - **Windows DDC/CI**: [`monitorcontrol`](https://github.com/newAM/monitorcontrol) library
 - **macOS DDC**: [`m1ddc`](https://github.com/waydabber/m1ddc) / [`ddcctl`](https://github.com/kfix/ddcctl)
-- **JSON library** (legacy C++): [nlohmann/json](https://github.com/nlohmann/json)
 
 ## License
 

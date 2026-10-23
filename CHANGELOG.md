@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2026-10-24
+
+**Breaking change**: Removed the v1.x standalone switcher and its backward-compatibility surface. Monitor Hub has had no dependents on either since the 2.0.0 rewrite.
+
+### Removed
+- `legacy/` — the v1.x C++ (Windows) / Shell (macOS) standalone switcher, unmaintained since 2.0.0
+- `monitor_hub/server/switch.py` — `GET /api/switch`, used only by the removed `switch.bat`/`switch.sh` launchers; not called by the web UI
+- `ask_on_multiple` and `default_target_id` config keys, which only controlled `/api/switch` behaviour
+
+### Notes
+- The `vcp_code` single-code source field is unaffected — it is still used by Identify (when all monitors share one code) and the Add/Edit Source dialog's manual entry, independent of the removed endpoint
+
+---
+
 ## [2.1.0] - 2026-08-15
 
 ### Added
@@ -94,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Main Changes |
 |---------|------|--------------|
+| 3.0.0 | 2026-10-24 | Removed legacy standalone switcher and `/api/switch` compat endpoint |
 | 2.1.0 | 2026-08-15 | Standalone exe packaging, autostart, LAN URL display |
 | 2.0.0 | 2026-05-12 | Local-mode Monitor Hub, native Python DDC, tray mode |
 | 1.1.0 | 2026-04-17 | Setup wizard, JSON config reading |
