@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 _config: dict = {}
 _config_path = None
-_EXPOSED_KEYS = {"ask_on_multiple", "default_target_id", "identify_candidates", "identify_dwell_ms"}
+_EXPOSED_KEYS = {"identify_candidates", "identify_dwell_ms"}
 
 
 def init(server_config: dict, config_path):

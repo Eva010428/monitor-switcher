@@ -14,7 +14,7 @@ class SourcesAndSwitchApiTest(unittest.TestCase):
         config_path = Path(self.tmp.name) / "config.json"
         sources_path.write_text(json.dumps({"sources": sources}))
         config_path.write_text("{}")
-        app = create_app({"ask_on_multiple": True}, sources_path, config_path)
+        app = create_app({}, sources_path, config_path)
         return app.test_client(), sources_path
 
     def test_add_source_persists_per_monitor_vcp_codes(self):
@@ -47,17 +47,6 @@ class SourcesAndSwitchApiTest(unittest.TestCase):
         data = json.loads(sources_path.read_text())
         self.assertEqual(data["sources"][0]["vcp_code"], 18)
         self.assertNotIn("vcp_codes", data["sources"][0])
-
-    def test_switch_api_ignores_sources_without_ip_when_matching_current(self):
-        client, _ = self.make_client([
-            {"id": "src-1", "name": "ThisMachine", "vcp_code": 15},
-            {"id": "src-2", "name": "Target", "vcp_code": 17},
-        ])
-
-        response = client.get("/api/switch?current=ThisMachine")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()["target"]["id"], "src-2")
 
 
 if __name__ == "__main__":
