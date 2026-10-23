@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-08-15
+
+### Added
+- Standalone Windows `.exe` packaging via `pyinstaller monitor_hub.spec` — restores `run.py` and `monitor_hub.spec` (dropped in the 2.0.0 refactor, still referenced by `build.yml`/`release.yml`), updated for the current module layout; builds windowed (no console flash on login)
+- LAN IP auto-detection (`net.py`), surfaced via `/api/settings` and the web UI, so other devices on the network see the right URL instead of requiring a hardcoded `host` in `config.json`
+- `shell:startup` autostart documentation for both the exe build and plain-Python paths
+
+### Fixed
+- `config.json`/`sources.json` persistence when frozen: `runtime_paths` previously resolved data next to `__file__`, which lands in PyInstaller's temp extraction dir and gets wiped on every restart — now resolves next to the exe instead
+- "Enable Tray" relaunch `cwd` for frozen builds (same `__file__`-in-temp-dir issue in `settings.py`)
+
+### Notes
+- Docker cannot control DDC/CI on Windows (`monitorcontrol` calls native GDI/dxva2 APIs unreachable from a container), so autostart is solved via a PyInstaller-built exe wired into `shell:startup` instead of containerization
+
+---
+
 ## [2.0.0] - 2026-05-12
 
 **Breaking change**: Monitor Hub is now the primary interface. The standalone C++/Shell binary workflow is moved to `legacy/`.
@@ -78,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Main Changes |
 |---------|------|--------------|
+| 2.1.0 | 2026-08-15 | Standalone exe packaging, autostart, LAN URL display |
 | 2.0.0 | 2026-05-12 | Local-mode Monitor Hub, native Python DDC, tray mode |
 | 1.1.0 | 2026-04-17 | Setup wizard, JSON config reading |
 | 1.0.0 | 2026-03-01 | Initial release |
