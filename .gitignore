@@ -2,6 +2,7 @@
 *.exe
 *.out
 *.app
+*.app/
 bin/
 !bin/.gitkeep
 
@@ -14,6 +15,12 @@ bin/
 *.lib
 windows/*.exe
 macos/ddcctl
+macos/*.app
+
+# PyInstaller build artifacts
+build/
+dist/
+release/
 
 # IDEs and editors
 .vscode/
@@ -21,7 +28,6 @@ macos/ddcctl
 *.swp
 *.swo
 *~
-.DS_Store
 
 # Visual Studio
 *.suo
@@ -45,6 +51,7 @@ monitor_hub/sources.json
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
 
 # AI assistant local context
 AGENTS.md
@@ -66,6 +73,7 @@ GEMINI.md
 
 # Logs
 *.log
+*.tmp
 logs/
 monitor_hub/logs/
 
@@ -83,3 +91,6 @@ Desktop.ini
 *.bak
 *.backup
 *~
+
+# Test cache
+.pytest_cache/
